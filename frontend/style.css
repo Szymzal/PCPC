@@ -1,0 +1,28 @@
+body {
+    background-color: black;
+    margin: 0px;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background-color: red;
+    height: 15vh;
+}
+
+.content {
+    background-color: green;
+    height: 80vh;
+}
+
+.footer {
+    background-color: yellow;
+    height: 5vh;
+}
+
+.part {
+    background-color: orange;
+}
