@@ -26,10 +26,8 @@ impl Component for Comparison {
             .context::<Rc<AppContext>>(ctx.link().callback(ComparisonMessage::ContextChanged))
             .unwrap();
 
-        {
-            let callback = ctx.link().callback(move |parts| ComparisonMessage::PopulateParts(parts));
-            spawn_local(get_part(context.clone(), callback));
-        }
+        let callback = ctx.link().callback(move |parts| ComparisonMessage::PopulateParts(parts));
+        spawn_local(Comparison::get_parts(context.clone(), callback));
 
         Self { 
             parts: Vec::new(),
@@ -67,14 +65,16 @@ impl Component for Comparison {
     }
 }
 
-async fn get_part(context: Rc<AppContext>, callback: Callback<Vec<Part>>) {
-    let mut parts: Vec<Part> = Vec::new();
-    for selected_part_id in &context.selected_parts {
-        let part = context.get_part(selected_part_id.to_owned()).await;
-        if let Some(part) = part {
-            parts.push(part);
+impl Comparison {
+    async fn get_parts(context: Rc<AppContext>, callback: Callback<Vec<Part>>) {
+        let mut parts: Vec<Part> = Vec::new();
+        for selected_part_id in &context.selected_parts {
+            let part = context.get_part(selected_part_id.to_owned()).await;
+            if let Some(part) = part {
+                parts.push(part);
+            }
         }
-    }
 
-    callback.emit(parts);
+        callback.emit(parts);
+    }
 }

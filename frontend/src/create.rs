@@ -21,6 +21,7 @@ impl Component for CreatePart {
         Self {
             part: DBPartProps { 
                 name: "".into(),
+                ..Default::default()
             }
         }
     }
@@ -40,6 +41,7 @@ impl Component for CreatePart {
             Callback::from(move |_| {
             let json = DBPartProps {
                 name: name.clone(),
+                ..Default::default()
             };
 
             spawn_local(async move {

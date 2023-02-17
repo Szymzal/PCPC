@@ -8,6 +8,7 @@ mod comparison;
 mod home;
 mod create;
 mod partpage;
+mod connection;
 
 #[function_component]
 fn Footer() -> Html {

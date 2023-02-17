@@ -1,11 +1,10 @@
 use std::rc::Rc;
 
 use common::{GetPartProps, DBPart};
-use gloo_net::http::Request;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{content::{ContentPage, Content}, header::Header, Footer, parts::Part};
+use crate::{content::{ContentPage, Content}, header::Header, Footer, parts::Part, connection::post_from_db};
 
 #[derive(Clone, PartialEq)]
 pub struct AppContext {
@@ -15,6 +14,21 @@ pub struct AppContext {
     pub selected_parts_callback: Callback<(String, bool)>,
 }
 
+pub async fn get_part_with_callback(context: Rc<AppContext>, id: String, callback: Callback<Part>) {
+    let part = context.get_part(id).await;
+    if let Some(part) = part {
+        callback.emit(part);
+    }
+}
+
+pub async fn get_parts_with_callback(context: Rc<AppContext>, limit: u32, callback: Callback<Vec<Part>>) {
+    let parts = context.get_parts(limit).await;
+    if parts.len() > 0 {
+        callback.emit(parts);
+    }
+}
+
+
 impl AppContext {
     pub async fn get_part(&self, id: String) -> Option<Part> {
         let json = GetPartProps {
@@ -22,17 +36,11 @@ impl AppContext {
             limit: 1,
         };
         
-        let response = Request::post("http://127.0.0.1:8088/api/part")
-            .json(&json)
-            .unwrap()
-            .send()
-            .await
-            .unwrap();
+        let db_part: Option<DBPart> = post_from_db("http://127.0.0.1:8088/api/part", json).await;
 
-        if response.ok() {
-            let json: DBPart = response.json().await.unwrap();
-            let part: Part = json.into();
-            return Some(part)
+        if let Some(db_part) = db_part {
+            let part: Part = db_part.into();
+            return Some(part);
         }
 
         None
@@ -44,16 +52,10 @@ impl AppContext {
             limit,
         };
         
-        let response = Request::post("http://127.0.0.1:8088/api/part")
-            .json(&json)
-            .unwrap()
-            .send()
-            .await
-            .unwrap();
+        let db_parts: Option<Vec<DBPart>> = post_from_db("http://127.0.0.1:8088/api/part", json).await;
 
-        if response.ok() {
-            let json: Vec<DBPart> = response.json().await.unwrap();
-            let parts: Vec<Part> = json.iter().map(|x| Part::from(x.clone())).collect();
+        if let Some(db_parts) = db_parts {
+            let parts: Vec<Part> = db_parts.iter().map(|x| Part::from(x.clone())).collect();
             return parts;
         }
 

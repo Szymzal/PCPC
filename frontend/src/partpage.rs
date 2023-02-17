@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
 use wasm_bindgen_futures::spawn_local;
-use yew::{Component, Properties, Callback, html, ContextHandle};
+use yew::{Component, Properties, html, ContextHandle};
 
-use crate::{parts::Part, app::AppContext};
+use crate::{parts::Part, app::{AppContext, get_part_with_callback}};
 
 pub struct PartPage {
     pub part: Option<Part>,
@@ -31,11 +31,9 @@ impl Component for PartPage {
             .context::<Rc<AppContext>>(ctx.link().callback(PartPageMessages::ContextChanged))
             .unwrap();
 
-        {
-            let part_id = ctx.props().part_id.clone();
-            let callback = ctx.link().callback(move |part| { PartPageMessages::PopulatePart(part) });
-            spawn_local(get_part_from_db(context.clone(), part_id.clone(), callback));
-        }
+        let part_id = ctx.props().part_id.clone();
+        let callback = ctx.link().callback(move |part| { PartPageMessages::PopulatePart(part) });
+        spawn_local(get_part_with_callback(context.clone(), part_id.clone(), callback));
 
         Self {
             part: None,
@@ -56,7 +54,28 @@ impl Component for PartPage {
     fn view(&self, _: &yew::Context<Self>) -> yew::Html {
         if let Some(part) = &self.part {
             return html! {
-                <h2>{part.name.clone()}</h2>
+                <div>
+                    <h1>{"Name:"}</h1>
+                    <h2>{part.name.clone()}</h2>
+                    <br/>
+                    <h1>{"Model:"}</h1>
+                    <h2>{part.model.clone()}</h2>
+                    <br/>
+                    <h1>{"Manufactuer:"}</h1>
+                    <h2>{part.manufactuer.clone()}</h2>
+                    <br/>
+                    <h1>{"Image:"}</h1>
+                    <h2>{part.image_url.clone()}</h2>
+                    <br/>
+                    <h1>{"Release date:"}</h1>
+                    <h2>{part.release_date.clone()}</h2>
+                    <br/>
+                    <h1>{"Release date:"}</h1>
+                    <h2>{part.rating.clone()}</h2>
+                    <br/>
+                    <h1>{"Favorited:"}</h1>
+                    <h2>{part.favorited.clone()}</h2>
+                </div>
             }
         }
 
@@ -64,9 +83,4 @@ impl Component for PartPage {
             <h2>{ "Loading..." }</h2>
         }
     }
-}
-
-async fn get_part_from_db(context: Rc<AppContext>, part_id: String, callback: Callback<Part>) {
-    let part = context.get_part(part_id).await.unwrap();
-    callback.emit(part);
 }

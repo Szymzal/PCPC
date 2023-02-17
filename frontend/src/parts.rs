@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use common::DBPart;
+use common::{DBPart, PartsCategory};
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::app::{AppContext, AppRoute};
+use crate::app::{AppContext, AppRoute, get_parts_with_callback};
 
 pub struct Parts {
     parts: Vec<Part>,
@@ -31,7 +31,7 @@ impl Component for Parts {
             .unwrap();
 
         let callback = ctx.link().callback(move |parts| { PartsMessage::AddParts(parts) });
-        spawn_local(get_parts_from_db(context.clone(), callback));
+        spawn_local(get_parts_with_callback(context.clone(), 20, callback));
 
         Self { 
             parts: Vec::new(),
@@ -82,16 +82,18 @@ impl Component for Parts {
     }
 }
 
-async fn get_parts_from_db(context: Rc<AppContext>, callback: Callback<Vec<Part>>) {
-    let parts = context.get_parts(2).await;
-    callback.emit(parts.iter().map(|x| Part::from(x.clone())).collect());
-}
-
 #[derive(Clone)]
 pub struct Part {
     pub id: String,
-    pub name: String,
     pub selected: bool,
+    pub favorited: bool,
+    pub name: String,
+    pub image_url: String,
+    pub model: String,
+    pub manufactuer: String,
+    pub release_date: u64,
+    pub rating: f32,
+    pub category_properties: PartsCategory,
 }
 
 impl PartialEq for Part {
@@ -101,13 +103,29 @@ impl PartialEq for Part {
 }
 
 impl Part {
-    pub fn new<T>(id: String, name: T) -> Self 
+    pub fn new<T>(
+        id: String, 
+        name: T,
+        image_url: T,
+        model: T,
+        manufactuer: T,
+        release_date: u64,
+        rating: f32,
+        category: PartsCategory,
+    ) -> Self 
     where T: Into<String>
     {
         Self { 
             id, 
+            selected: false,
+            favorited: false,
             name: name.into(), 
-            selected: false 
+            image_url: image_url.into(),
+            model: model.into(),
+            manufactuer: manufactuer.into(),
+            release_date,
+            rating,
+            category_properties: category,
         }
     }
 
@@ -131,12 +149,34 @@ impl Part {
     }
 }
 
+impl Default for Part {
+    fn default() -> Self {
+        Self { 
+            id: "".into(), 
+            selected: false, 
+            favorited: false, 
+            name: "".into(), 
+            image_url: "".into(), 
+            model: "".into(), 
+            manufactuer: "".into(), 
+            release_date: 0, 
+            rating: 0.0,
+            category_properties: PartsCategory::Basic,
+        }
+    }
+}
+
 impl From<DBPart> for Part {
     fn from(value: DBPart) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            selected: false,
-        }
+        Self::new(
+            value.id, 
+            value.name, 
+            value.image_url, 
+            value.model, 
+            value.manufactuer, 
+            value.release_date, 
+            value.rating,
+            PartsCategory::Basic,
+        )
     }
 }

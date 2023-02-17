@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::BTreeMap};
 
 use actix_cors::Cors;
 use actix_web::{get, web::{self, Data}, App, HttpServer, middleware, HttpResponse, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, body::MessageBody, Error, post, http::header};
 use anyhow::{bail, anyhow};
-use common::{StatusResponse, DBPartProps, GetPartProps, DBPart};
-use surrealdb::{Datastore, Session};
+use common::{StatusResponse, DBPartProps, GetPartProps, DBPart, PartsCategory, CPUProperties};
+use surrealdb::{Datastore, Session, sql::Value};
 use tokio::sync::Mutex;
 
 pub struct DB {
@@ -87,10 +87,13 @@ async fn create_db_connection() -> anyhow::Result<Arc<Mutex<DB>>> {
 }
 
 async fn create_part_raw(part_props: &DBPartProps, db: &Data<Mutex<DB>>) -> anyhow::Result<()> {
-    let sql = format!("CREATE part SET name = '{}'", part_props.name);
-    let db_locked = db.lock().await;
-    let response = db_locked.datastore.execute(sql.as_str(), &db_locked.session, None, false).await;
+    let sql = "CREATE part CONTENT $props";
+    let vars: BTreeMap<String, Value> = [
+        ("props".into(), part_props.to_owned().into()),
+    ].into();
 
+    let db_locked = db.lock().await;
+    let response = db_locked.datastore.execute(sql, &db_locked.session, Some(vars), false).await;
     drop(db_locked);
 
     if let Err(error) = response { 
@@ -148,9 +151,79 @@ fn create_app(
         .service(part)
 }
 
+async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
+    let db = Data::from(db);
+
+    let temp_parts: Vec<DBPartProps> = vec![
+        DBPartProps { 
+            name: "Monitor".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "GPU".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "CPU".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "Power Supply".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "RAM".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "SSD".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "HDD".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "Motherboard".into(),
+            ..Default::default()
+        },
+        DBPartProps { 
+            name: "Intel Core i5-13500".into(), 
+            image_url: "https://www.intel.com/content/dam/www/central-libraries/xa/en/images/intel-core-i5-badge-1440x1080.png.rendition.intel.web.64.64.png".into(), 
+            model: "i5-13500".into(), 
+            manufactuer: "Intel".into(), 
+            release_date: 1672527600, 
+            rating: 3.5, 
+            category: PartsCategory::CPU(CPUProperties { 
+                cores: 14, 
+                threads: 20, 
+                max_frequency: 4.80, // GHz
+                base_frequency: 1.80, // GHz
+                max_tdp: 154, // W
+                base_tdp: 65, // W
+                cache: 24, // MB
+                max_ram_size: 128, // GB
+                max_memory_channels: 2, 
+                ecc_memory_supported: true, 
+                max_pcie_lanes: 20, 
+                max_supported_pcie_version: 5.0, 
+                socket: "FCLGA1700".into(), 
+                max_temperature: 100, // C
+            }),
+        }
+    ];
+
+    for temp_part in temp_parts {
+        create_part_raw(&temp_part, &db).await?;
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let db = create_db_connection().await?;
+    put_temp_data_to_db(db.clone()).await?;
 
     HttpServer::new(move || {
         create_app(db.clone())
@@ -198,6 +271,12 @@ mod tests {
                 .set_json(
                     DBPartProps {
                         name: part_name.to_owned(),
+                        image_url: "".into(),
+                        model: "Some model".into(),
+                        manufactuer: "AOC".into(),
+                        release_date: 1676658105,
+                        rating: 4.5,
+                        category: PartsCategory::Basic,
                     }
                 );
 
