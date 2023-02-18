@@ -15,6 +15,7 @@ body {
 
 .content {
     background-color: green;
+    overflow: auto;
     height: 80vh;
 }
 

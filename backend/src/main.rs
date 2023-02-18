@@ -193,12 +193,12 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
             model: "i5-13500".into(), 
             manufactuer: "Intel".into(), 
             release_date: 1672527600, 
-            rating: 3.5, 
+            rating: 3.5.into(), 
             category: PartsCategory::CPU(CPUProperties { 
                 cores: 14, 
                 threads: 20, 
-                max_frequency: 4.80, // GHz
-                base_frequency: 1.80, // GHz
+                max_frequency: 4.80.into(), // GHz
+                base_frequency: 1.80.into(), // GHz
                 max_tdp: 154, // W
                 base_tdp: 65, // W
                 cache: 24, // MB
@@ -206,7 +206,7 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
                 max_memory_channels: 2, 
                 ecc_memory_supported: true, 
                 max_pcie_lanes: 20, 
-                max_supported_pcie_version: 5.0, 
+                max_supported_pcie_version: 5.0.into(), 
                 socket: "FCLGA1700".into(), 
                 max_temperature: 100, // C
             }),
@@ -264,24 +264,27 @@ mod tests {
             .await;
 
         let part_name = "Monitor".to_string();
+        let json = DBPartProps {
+                    name: part_name.to_owned(),
+                    image_url: "".into(),
+                    model: "Some model".into(),
+                    manufactuer: "AOC".into(),
+                    release_date: 1676658105,
+                    rating: 4.5.into(),
+                    category: PartsCategory::Basic,
+                };
+        let json = serde_json::to_value(&json).unwrap();
+        println!("JSON: {}", json);
 
         let request = 
             test::TestRequest::post()
                 .uri("/api/part/create")
-                .set_json(
-                    DBPartProps {
-                        name: part_name.to_owned(),
-                        image_url: "".into(),
-                        model: "Some model".into(),
-                        manufactuer: "AOC".into(),
-                        release_date: 1676658105,
-                        rating: 4.5,
-                        category: PartsCategory::Basic,
-                    }
-                );
+                .set_json(json);
 
         let response = test::call_service(&app, request.to_request()).await;
         let response = response.response();
+
+        println!("Status: {}", response.status());
 
         assert!(match response.status() {
             StatusCode::OK => true,

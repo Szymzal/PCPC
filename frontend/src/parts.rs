@@ -175,7 +175,7 @@ impl From<DBPart> for Part {
             value.model, 
             value.manufactuer, 
             value.release_date, 
-            value.rating,
+            value.rating.into(),
             PartsCategory::Basic,
         )
     }
