@@ -9,6 +9,8 @@ mod home;
 mod create;
 mod partpage;
 mod connection;
+mod filter;
+mod icons;
 
 #[function_component]
 fn Footer() -> Html {

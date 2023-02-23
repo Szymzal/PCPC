@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::app::{AppContext, AppRoute, get_parts_with_callback};
+use crate::{app::{AppContext, AppRoute, get_parts_with_callback}, filter::Filter, icons::SearchBar};
 
 pub struct Parts {
     parts: Vec<Part>,
@@ -75,8 +75,14 @@ impl Component for Parts {
         }).collect();
 
         html! {
-            <div class={classes!("parts")}>
-                {parts}
+            <div class={classes!("parts-page")}>
+                <Filter />
+                <div class={classes!("parts-container")}>
+                    <SearchBar />
+                    <div class={classes!("parts")}>
+                        {parts}
+                    </div>
+                </div>
             </div>
         }
     }
@@ -130,7 +136,7 @@ impl Part {
     }
 
     fn to_html(&self, callback: Callback<Part>) -> Html {
-        let on_click = {
+        let on_click_selected = {
             let callback = callback.clone();
             let part = self.clone();
             Callback::from(move |_| {
@@ -140,10 +146,29 @@ impl Part {
 
         html! {
             <div class={classes!("part")}>
-                <input type="checkbox" onclick={on_click} checked={self.selected} />
-                <Link<AppRoute> to={AppRoute::Part { id: self.id.clone() }}>
-                    <h3 class={classes!("part_name")}>{&self.name}</h3>
-                </Link<AppRoute>>
+                <div class={classes!("part_img")}>
+                    <img src={self.image_url.clone()} alt="PC Part Image" />
+                </div>
+                <div class={classes!("part_content")}>
+                    <div class={classes!("part_header")}>
+                        <Link<AppRoute> to={AppRoute::Part { id: self.id.clone() }}>
+                            <h3 class={classes!("part_name")}>{&self.name}</h3>
+                        </Link<AppRoute>>
+                        <img 
+                            src={ if !self.selected { "https://cdn-icons-png.flaticon.com/512/3524/3524388.png" } else { "https://cdn-icons-png.flaticon.com/512/56/56889.png" } }
+                            alt="Select" 
+                            onclick={on_click_selected} 
+                        />
+                        <img 
+                            src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
+                            alt="Favorite"
+                        />
+                    </div>
+                    <span></span>
+                    <div class={classes!("part_info")}>
+                        
+                    </div>
+                </div>
             </div>
         }
     }
