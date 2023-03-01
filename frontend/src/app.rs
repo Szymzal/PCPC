@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
 use common::{GetPartProps, DBPart};
+use wasm_bindgen::JsCast;
+use web_sys::HtmlDivElement;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -12,6 +14,10 @@ pub struct AppContext {
     pub content_page_callback: Callback<ContentPage>,
     pub selected_parts: Vec<String>,
     pub selected_parts_callback: Callback<(String, bool)>,
+    pub properties_order: Vec<String>,
+    pub properties_order_callback: Callback<Vec<String>>,
+    pub filter_visibility: bool,
+    pub filter_visibility_callback: Callback<bool>,
 }
 
 pub async fn get_part_with_callback(context: Rc<AppContext>, id: String, callback: Callback<Part>) {
@@ -65,11 +71,16 @@ impl AppContext {
 
 pub struct App {
     app_context: Rc<AppContext>,
+    mouse_event_selected: Option<HtmlDivElement>,
 }
 
 pub enum AppMessage {
     ChangeContentPage(ContentPage),
     UpdateSelectedPart(String, bool),
+    SetMouseEventSelected(Option<MouseEvent>),
+    UpdateSizeOfSelectedElement(MouseEvent),
+    OrderPropertiesChange(Vec<String>),
+    SetFilterVisibility(bool),
 }
 
 impl Component for App {
@@ -79,23 +90,30 @@ impl Component for App {
     fn create(ctx: &Context<Self>) -> Self {
         let content_page_callback = ctx.link().callback(move |page| AppMessage::ChangeContentPage(page));
         let selected_parts_callback = ctx.link().callback(move |(part, selected)| AppMessage::UpdateSelectedPart(part, selected));
-        
+        let properties_order_callback = ctx.link().callback(move |new_ordering_properties| AppMessage::OrderPropertiesChange(new_ordering_properties));
+        let filter_visibility_callback = ctx.link().callback(move |filter_visibility| AppMessage::SetFilterVisibility(filter_visibility));
+
         let context = Rc::new(AppContext {
             content_page: ContentPage::Parts,
             content_page_callback,
             selected_parts: Vec::new(),
             selected_parts_callback,
+            properties_order: Vec::new(),
+            properties_order_callback,
+            filter_visibility: true,
+            filter_visibility_callback,
         });
 
-        Self { app_context: context }
+        Self { 
+            app_context: context,
+            mouse_event_selected: None,
+        }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         let mut app_context = Rc::make_mut(&mut self.app_context);
         match msg {
-            AppMessage::ChangeContentPage(page) => {
-                app_context.content_page = page;
-            },
+            AppMessage::ChangeContentPage(page) => app_context.content_page = page,
             AppMessage::UpdateSelectedPart(part, selected) => {
                 if selected {
                     app_context.selected_parts.push(part);
@@ -103,17 +121,57 @@ impl Component for App {
                     app_context.selected_parts.retain(|x| *x != part);
                 }
             },
+            AppMessage::SetMouseEventSelected(event) => {
+                if let Some(event) = event {
+                    let target = event.clone().target();
+                    let element = target.and_then(|t| t.dyn_into::<HtmlDivElement>().ok());
+                    if let Some(element) = element {
+                        let classes = element.class_list();
+                        if !classes.contains("resizer-right") {
+                            return true;
+                        }
+
+                        let element = element.parent_element().and_then(|e| e.dyn_into::<HtmlDivElement>().ok());
+                        if let Some(element) = element {
+                            self.mouse_event_selected = Some(element);
+                            return true;
+                        }
+                    }
+                }
+
+                self.mouse_event_selected = None;
+            },
+            AppMessage::UpdateSizeOfSelectedElement(event) => {
+                if let Some(selected) = &self.mouse_event_selected {
+                    let width = selected.client_width();
+                    let style = selected.style();
+                    let new_width = width + event.movement_x().clone();
+                    style.set_property("width", format!("{}px", new_width).as_str()).unwrap();
+                }
+            },
+            AppMessage::OrderPropertiesChange(properties_order) => app_context.properties_order = properties_order,
+            AppMessage::SetFilterVisibility(filter_visibility) => app_context.filter_visibility = filter_visibility,
         }
 
         true
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let app_context = &self.app_context;
+        let callback_mouse_down = ctx.link().callback(move |event| AppMessage::SetMouseEventSelected(Some(event)));
+        let callback_mouse_up = ctx.link().callback(move |_| AppMessage::SetMouseEventSelected(None));
+        let callback = ctx.link().callback(move |event| AppMessage::UpdateSizeOfSelectedElement(event));
+
         html! {
             <ContextProvider<Rc<AppContext>> context={app_context}>
                 <BrowserRouter>
-                    <div class={classes!("body")}>
+                    <div 
+                        class={classes!("body")}
+                        onmousedown={callback_mouse_down}
+                        onmouseup={callback_mouse_up.clone()}
+                        onmouseleave={callback_mouse_up.clone()}
+                        onmousemove={callback}
+                    >
                         <Header />
                         <Content />
                         <Footer />

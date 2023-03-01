@@ -11,6 +11,7 @@ mod partpage;
 mod connection;
 mod filter;
 mod icons;
+mod rating;
 
 #[function_component]
 fn Footer() -> Html {

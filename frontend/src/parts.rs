@@ -1,11 +1,13 @@
-use std::rc::Rc;
+use std::{rc::Rc, collections::HashMap};
 
 use common::{DBPart, PartsCategory};
+use serde::Serialize;
+use serde_json::Value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{app::{AppContext, AppRoute, get_parts_with_callback}, filter::Filter, icons::SearchBar};
+use crate::{app::{AppContext, AppRoute, get_parts_with_callback}, filter::Filter, icons::SearchBar, rating::Rating};
 
 pub struct Parts {
     parts: Vec<Part>,
@@ -70,13 +72,16 @@ impl Component for Parts {
             PartsMessage::SetSelected(part.clone(), !part.selected.clone())
         });
 
+        let ordering_properties = &self.context.properties_order;
         let parts: Html = self.parts.iter().map(|part| html! {
-            part.to_html(callback.clone())
+            part.to_html(Some(ordering_properties), callback.clone())
         }).collect();
 
         html! {
             <div class={classes!("parts-page")}>
-                <Filter />
+                if self.context.filter_visibility {
+                    <Filter />
+                }
                 <div class={classes!("parts-container")}>
                     <SearchBar />
                     <div class={classes!("parts")}>
@@ -88,16 +93,22 @@ impl Component for Parts {
     }
 }
 
-#[derive(Clone)]
+#[derive(Serialize, Clone)]
 pub struct Part {
+    #[serde(skip_serializing)]
     pub id: String,
+    #[serde(skip_serializing)]
     pub selected: bool,
+    #[serde(skip_serializing)]
     pub favorited: bool,
+    #[serde(skip_serializing)]
     pub name: String,
+    #[serde(skip_serializing)]
     pub image_url: String,
     pub model: String,
     pub manufactuer: String,
     pub release_date: u64,
+    #[serde(skip_serializing)]
     pub rating: f32,
     pub category_properties: PartsCategory,
 }
@@ -122,7 +133,7 @@ impl Part {
     where T: Into<String>
     {
         Self { 
-            id, 
+            id,
             selected: false,
             favorited: false,
             name: name.into(), 
@@ -135,7 +146,37 @@ impl Part {
         }
     }
 
-    fn to_html(&self, callback: Callback<Part>) -> Html {
+    fn get_properties_as_map(&self) -> anyhow::Result<HashMap<String, String>> {
+        let field_values_array = serde_json::to_string(&self.clone())?;
+        let mut chars = field_values_array.chars();
+        chars.next();
+        chars.next_back();
+        let field_values_array = format!("[{}]", chars.as_str());
+        let field_values_array = field_values_array.replace(":", ",");
+        let array: Vec<Value> = serde_json::from_str(&field_values_array)?;
+        let array: Vec<String> = array.iter().map(|x| x.to_string()).collect();
+        let mut map: HashMap<String, String> = HashMap::new();
+        for i in 0..array.len() / 2 {
+            let key = array.get(i * 2);
+            let value = array.get(i * 2 + 1);
+            if let (Some(key), Some(value)) = (key, value) {
+                let mut key = key.replace("\"", "");
+                let mut chars: Vec<char> = key.chars().collect();
+                let uppercase_char = chars[0].to_uppercase().nth(0);
+                if let Some(uppercase_char) = uppercase_char {
+                    chars[0] = uppercase_char;
+                    key = chars.into_iter().collect();
+                }
+                key = key.replace("_", " ");
+                let value = value.replace("\"", "");
+                map.insert(key.to_string(), value.to_string());
+            }
+        }
+
+        return Ok(map);
+    }
+
+    fn to_html(&self, order: Option<&Vec<String>>, callback: Callback<Part>) -> Html {
         let on_click_selected = {
             let callback = callback.clone();
             let part = self.clone();
@@ -143,6 +184,22 @@ impl Part {
                 callback.emit(part.clone())
             })
         };
+
+        let map = self.get_properties_as_map();
+        let mut properties: Vec<Html> = Vec::new();
+        if let (Ok(map), Some(order)) = (map, order) {
+            for key in order {
+                let value = map.get(key);
+                if let Some(value) = value {
+                    properties.push(html! {
+                        <div class={classes!("part_specification")}>
+                            <h4>{format!("{}:", key.to_owned())}</h4>
+                            <h5>{value.to_owned()}</h5>
+                        </div>
+                    });
+                }
+            }
+        }
 
         html! {
             <div class={classes!("part")}>
@@ -154,19 +211,24 @@ impl Part {
                         <Link<AppRoute> to={AppRoute::Part { id: self.id.clone() }}>
                             <h3 class={classes!("part_name")}>{&self.name}</h3>
                         </Link<AppRoute>>
-                        <img 
-                            src={ if !self.selected { "https://cdn-icons-png.flaticon.com/512/3524/3524388.png" } else { "https://cdn-icons-png.flaticon.com/512/56/56889.png" } }
-                            alt="Select" 
-                            onclick={on_click_selected} 
-                        />
-                        <img 
-                            src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
-                            alt="Favorite"
-                        />
                     </div>
-                    <span></span>
                     <div class={classes!("part_info")}>
-                        
+                        <Rating rating={self.rating} />
+                        {properties}
+                    </div>
+                    <div class={classes!("part_footer")}>
+                        <div class={classes!("part_action")} onclick={on_click_selected} >
+                            <img 
+                                src={ if !self.selected { "https://cdn-icons-png.flaticon.com/512/3524/3524388.png" } else { "https://cdn-icons-png.flaticon.com/512/56/56889.png" } }
+                                alt="Select" 
+                            />
+                        </div>
+                        <div class={classes!("part_action")}>
+                            <img 
+                                src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
+                                alt="Favorite"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

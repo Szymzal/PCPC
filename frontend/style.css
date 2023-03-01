@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@500;700&family=Open+Sans:wght@600&family=Work+Sans:wght@500&display=swap');
 
 body {
     background-color: black;
@@ -59,6 +59,7 @@ body {
     height: 90vh;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
 }
 
 .footer {
@@ -69,7 +70,6 @@ body {
 .part {
     background-color: orange;
     width: 300px;
-    height: 500px;
     margin: 20px 10px;
     border-radius: 10px;
     display: flex;
@@ -81,40 +81,93 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: white;
+    border-radius: 10px 10px 0px 0px;
 }
 
 .part_content {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.part_info {
     flex-grow: 1;
 }
 
 .part_header {
-    display: grid;
-    grid-template-columns: repeat(1, auto) 1fr repeat(2, auto);
+    display: flex;
     align-items: center;
+    margin-left: 10px;
 }
 
-.part_header img {
-    cursor: pointer;
+.part_action img {
+    margin: 5px;
     width: 30px;
     height: 30px;
 }
 
-.part_header img:last-child {
-    margin-right: 10px;
+.part_footer {
+    display: flex;
+    justify-content: center;
 }
 
-.part_header img:nth-child(2) {
-    grid-column-start: 3;
-    margin: 5px;
+.part_action {
+    display: flex;
+    justify-content: center;
+    flex-grow: 2;
+    border-radius: 10px;
+    background-color: white;
+    margin-top: 10px;
+    margin-left: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.part_action:last-child {
+    flex-grow: 1;
+}
+
+.part_action:last-child {
+    margin-right: 5px;
 }
 
 .part_header a {
     text-decoration: none;
 }
 
+.part_header a h3 {
+    margin: 0;
+    margin-top: 8px;
+    margin-top: 5px;
+    font-size: 20px;
+    font-family: 'Open Sans', Arial;
+}
+
 .part_name {
     margin-left: 10px;
     color: black;
+}
+
+.part_specification {
+    display: flex;
+    align-items: center;
+}
+
+.part_specification h4 {
+    margin: 0;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-size: 17px;
+    font-family: 'Assistant', Arial;
+    font-weight: 700;
+}
+
+.part_specification h5 {
+    margin: 0;
+    font-size: 17px;
+    font-family: 'Assistant', Arial;
+    font-weight: 500;
 }
 
 .parts {
@@ -125,15 +178,28 @@ body {
     overflow-y: auto;
 }
 
-.content span {
-    height: 1px;
-    width: 100%;
-}
-
 .parts-page {
     display: flex;
     overflow-y: hidden;
     height: 100%;
+}
+
+.part_rating {
+    margin: 0;
+    margin-left: 10px;
+    margin-bottom: 10px;
+    display: inline-block;
+    line-height: 1;
+    font-size: 25px;
+    font-family: Times;
+}
+
+.part_rating::before {
+    content: '★★★★★';
+    background: linear-gradient(90deg, #fc0 var(--percent), #fff var(--percent));
+    font-family: Times;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .parts-container {
@@ -156,6 +222,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: pointer;
 }
 
 .filter-icon img {
@@ -187,8 +254,26 @@ body {
 }
 
 .filter {
-    min-width: 100px;
-    resize: horizontal;
+    min-width: 150px;
     overflow: auto;
-    background-color: black;
+    background-color: blue;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filter-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ordering-property {
+    display: flex;
+}
+
+.resizer-right {
+    width: 10px;
+    height: 100%;
+    background: red;
+    cursor: e-resize;
 }
