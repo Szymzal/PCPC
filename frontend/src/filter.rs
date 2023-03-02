@@ -1,11 +1,13 @@
 use std::rc::Rc;
 
+use common::PartsCategory;
 use serde_json::Value;
 use yew::prelude::*;
 
 use crate::{app::AppContext, parts::Part};
 
 pub struct Filter {
+    category_selected: Option<String>,
     ordering: Vec<String>,
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
@@ -14,6 +16,7 @@ pub struct Filter {
 pub enum FilterMessage {
     ContextChanged(Rc<AppContext>),
     FilterVisibilityChanged((String, bool)),
+    CategorySelectedChanged(String),
 }
 
 impl Component for Filter {
@@ -26,10 +29,12 @@ impl Component for Filter {
             .context::<Rc<AppContext>>(ctx.link().callback(FilterMessage::ContextChanged))
             .unwrap();
 
+
         let ordering = ordering();
         context.properties_order_callback.emit(ordering.clone());
 
         Self {
+            category_selected: None,
             ordering,
             context,
             _listener,
@@ -59,12 +64,26 @@ impl Component for Filter {
                 
                 context.properties_order_callback.emit(current_properties_order);
             },
+            FilterMessage::CategorySelectedChanged(category) => {
+                self.category_selected = Some(category);
+            },
         }
 
         true
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
+        let categories = categories();
+        let mut categories_html: Vec<Html> = Vec::new();
+        for category in &categories {
+            let callback = ctx.link().callback(move |(category, _selected)| FilterMessage::CategorySelectedChanged(category));
+            let selected = if self.category_selected == Some(category.clone()) { true } else { false };
+
+            categories_html.push(html! {
+                <Property name={category.clone()} selected={selected} callback={callback} />
+            });
+        }
+
         let mut ordering_properties: Vec<Html> = Vec::new();
         let properties_order = &self.context.properties_order;
         for ordering_property in &self.ordering {
@@ -78,13 +97,16 @@ impl Component for Filter {
             }
 
             ordering_properties.push(html! {
-                <OrderingProperty name={ordering_property.clone()} selected={selected} callback={callback} />
+                <Property name={ordering_property.clone()} selected={selected} callback={callback} />
             });
         }
 
         html! {
             <div class={classes!("filter")}>
                 <div class={classes!("filter-content")}>
+                    <h2>{"Category"}</h2>
+                    {categories_html}
+                    <h2>{"Properties"}</h2>
                     {ordering_properties}
                 </div>
                 <div 
@@ -93,6 +115,10 @@ impl Component for Filter {
             </div>
         }
     }
+}
+
+fn categories() -> Vec<String> {
+    return PartsCategory::get_all_variats();
 }
 
 fn ordering() -> Vec<String> {
@@ -130,22 +156,22 @@ fn ordering() -> Vec<String> {
     Vec::new()
 }
 
-pub struct OrderingProperty;
+pub struct Property;
 
 #[derive(Properties, Clone, PartialEq)]
-pub struct OrderingPropertyProps {
+pub struct PropertyProps {
     pub name: String,
     pub selected: bool,
     pub callback: Callback<(String, bool)>,
 }
 
-pub enum OrderingPropertyMessage {
+pub enum PropertyMessage {
     ChangeSelected(bool),
 }
 
-impl Component for OrderingProperty {
-    type Message = OrderingPropertyMessage;
-    type Properties = OrderingPropertyProps;
+impl Component for Property {
+    type Message = PropertyMessage;
+    type Properties = PropertyProps;
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self
@@ -153,7 +179,7 @@ impl Component for OrderingProperty {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            OrderingPropertyMessage::ChangeSelected(selected) => { 
+            PropertyMessage::ChangeSelected(selected) => { 
                 let props = ctx.props();
                 props.callback.emit((props.name.clone(), selected));
             },
@@ -165,7 +191,7 @@ impl Component for OrderingProperty {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let on_click = {
             let props = ctx.props().clone();
-            ctx.link().callback(move |_| OrderingPropertyMessage::ChangeSelected(!props.selected))
+            ctx.link().callback(move |_| PropertyMessage::ChangeSelected(!props.selected))
         };
 
         html! {

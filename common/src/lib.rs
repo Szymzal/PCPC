@@ -1,4 +1,7 @@
+use std::fmt::Display;
+
 use serde::{Serialize, Deserialize};
+use strum::{EnumIter, IntoEnumIterator, Display};
 #[cfg(feature = "surreal")]
 use surrealdb::sql::{Value, json};
 use types::StringenFloat;
@@ -49,11 +52,22 @@ pub struct GetPartProps {
     pub limit: u32,
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug, EnumIter, Display)]
 pub enum PartsCategory {
     #[default]
     Basic,
     CPU(CPUProperties),
+}
+
+impl PartsCategory {
+    pub fn get_all_variats() -> Vec<String> {
+        let mut variants: Vec<String> = Vec::new();
+        for variant in PartsCategory::iter() {
+            variants.push(variant.to_string());
+        }
+
+        return variants;
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug)]
