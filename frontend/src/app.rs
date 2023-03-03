@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use common::{GetPartProps, DBPart};
+use common::{GetPartProps, DBPart, PartsCategory};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlDivElement;
 use yew::prelude::*;
@@ -16,6 +16,8 @@ pub struct AppContext {
     pub selected_parts_callback: Callback<(String, bool)>,
     pub properties_order: Vec<String>,
     pub properties_order_callback: Callback<Vec<String>>,
+    pub selected_category: String,
+    pub selected_category_callback: Callback<String>,
     pub filter_visibility: bool,
     pub filter_visibility_callback: Callback<bool>,
 }
@@ -80,6 +82,7 @@ pub enum AppMessage {
     SetMouseEventSelected(Option<MouseEvent>),
     UpdateSizeOfSelectedElement(MouseEvent),
     OrderPropertiesChange(Vec<String>),
+    SetSelectedCategory(String),
     SetFilterVisibility(bool),
 }
 
@@ -92,6 +95,7 @@ impl Component for App {
         let selected_parts_callback = ctx.link().callback(move |(part, selected)| AppMessage::UpdateSelectedPart(part, selected));
         let properties_order_callback = ctx.link().callback(move |new_ordering_properties| AppMessage::OrderPropertiesChange(new_ordering_properties));
         let filter_visibility_callback = ctx.link().callback(move |filter_visibility| AppMessage::SetFilterVisibility(filter_visibility));
+        let selected_category_callback = ctx.link().callback(move |selected_category| AppMessage::SetSelectedCategory(selected_category));
 
         let context = Rc::new(AppContext {
             content_page: ContentPage::Parts,
@@ -100,6 +104,8 @@ impl Component for App {
             selected_parts_callback,
             properties_order: Vec::new(),
             properties_order_callback,
+            selected_category: PartsCategory::Basic.to_string(),
+            selected_category_callback,
             filter_visibility: true,
             filter_visibility_callback,
         });
@@ -151,6 +157,7 @@ impl Component for App {
             },
             AppMessage::OrderPropertiesChange(properties_order) => app_context.properties_order = properties_order,
             AppMessage::SetFilterVisibility(filter_visibility) => app_context.filter_visibility = filter_visibility,
+            AppMessage::SetSelectedCategory(selected_category) => app_context.selected_category = selected_category,
         }
 
         true

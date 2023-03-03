@@ -9,12 +9,13 @@ where T: Serialize,
         .json(&json)
         .unwrap()
         .send()
-        .await
-        .unwrap();
+        .await;
 
-    if response.ok() {
-        let get: W = response.json().await.unwrap();
-        return Some(get)
+    if let Ok(response) = response {
+        if response.ok() {
+            let get: W = response.json().await.unwrap();
+            return Some(get)
+        }
     }
 
     None

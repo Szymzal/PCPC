@@ -1,13 +1,14 @@
 use std::rc::Rc;
+use std::str::FromStr;
 
-use common::PartsCategory;
+use common::{PartsCategory, traits::PartProperties};
+use serde::Serialize;
 use serde_json::Value;
 use yew::prelude::*;
 
 use crate::{app::AppContext, parts::Part};
 
 pub struct Filter {
-    category_selected: Option<String>,
     ordering: Vec<String>,
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
@@ -29,12 +30,14 @@ impl Component for Filter {
             .context::<Rc<AppContext>>(ctx.link().callback(FilterMessage::ContextChanged))
             .unwrap();
 
-
-        let ordering = ordering();
-        context.properties_order_callback.emit(ordering.clone());
+        let selected_category = PartsCategory::from_str(&context.selected_category)
+            .unwrap_or(PartsCategory::Basic);
+        let ordering = ordering(selected_category);
+        if context.properties_order.is_empty() {
+            context.properties_order_callback.emit(ordering.clone());
+        }
 
         Self {
-            category_selected: None,
             ordering,
             context,
             _listener,
@@ -64,8 +67,14 @@ impl Component for Filter {
                 
                 context.properties_order_callback.emit(current_properties_order);
             },
-            FilterMessage::CategorySelectedChanged(category) => {
-                self.category_selected = Some(category);
+            FilterMessage::CategorySelectedChanged(category_string) => {
+                let category = PartsCategory::from_str(&category_string)
+                    .unwrap_or(PartsCategory::Basic);
+                let ordering = ordering(category);
+                self.ordering = ordering.clone();
+                web_sys::console::log_1(&format!("Ordering: {:?}", ordering).into());
+                self.context.properties_order_callback.emit(ordering);
+                self.context.selected_category_callback.emit(category_string);
             },
         }
 
@@ -77,7 +86,7 @@ impl Component for Filter {
         let mut categories_html: Vec<Html> = Vec::new();
         for category in &categories {
             let callback = ctx.link().callback(move |(category, _selected)| FilterMessage::CategorySelectedChanged(category));
-            let selected = if self.category_selected == Some(category.clone()) { true } else { false };
+            let selected = if self.context.selected_category == category.clone() { true } else { false };
 
             categories_html.push(html! {
                 <Property name={category.clone()} selected={selected} callback={callback} />
@@ -121,9 +130,24 @@ fn categories() -> Vec<String> {
     return PartsCategory::get_all_variats();
 }
 
-fn ordering() -> Vec<String> {
+fn ordering(category: PartsCategory) -> Vec<String> {
     let part_template = Part::default();
-    let field_values_array = serde_json::to_string(&part_template);
+    let mut part_field_names = get_field_names(part_template);
+    let category_field_map = category.to_string_vec();
+    let mut category_field_names: Vec<String> = Vec::new();
+    if let Ok(category_field_map) = category_field_map {
+        for (key, _) in category_field_map {
+            category_field_names.push(key);
+        }
+    }
+    part_field_names.append(&mut category_field_names);
+    part_field_names
+}
+
+fn get_field_names<T>(object: T) -> Vec<String>
+where T: Serialize
+{
+    let field_values_array = serde_json::to_string(&object);
     if let Ok(field_values_array) = field_values_array {
         let mut chars = field_values_array.chars();
         chars.next();

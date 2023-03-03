@@ -1,8 +1,7 @@
 use std::{rc::Rc, collections::HashMap};
 
-use common::{DBPart, PartsCategory};
+use common::{DBPart, PartsCategory, traits::PartProperties};
 use serde::Serialize;
-use serde_json::Value;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -73,8 +72,12 @@ impl Component for Parts {
         });
 
         let ordering_properties = &self.context.properties_order;
-        let parts: Html = self.parts.iter().map(|part| html! {
-            part.to_html(Some(ordering_properties), callback.clone())
+        let parts: Html = self.parts.iter().map(|part| {
+            if self.context.selected_category == part.category_properties.to_string() {
+                return part.to_html(Some(ordering_properties), callback.clone());
+            }
+            
+            return html! {}
         }).collect();
 
         html! {
@@ -110,8 +113,11 @@ pub struct Part {
     pub release_date: u64,
     #[serde(skip_serializing)]
     pub rating: f32,
+    #[serde(skip_serializing)]
     pub category_properties: PartsCategory,
 }
+
+impl PartProperties for Part {}
 
 impl PartialEq for Part {
     fn eq(&self, other: &Self) -> bool {
@@ -147,33 +153,12 @@ impl Part {
     }
 
     fn get_properties_as_map(&self) -> anyhow::Result<HashMap<String, String>> {
-        let field_values_array = serde_json::to_string(&self.clone())?;
-        let mut chars = field_values_array.chars();
-        chars.next();
-        chars.next_back();
-        let field_values_array = format!("[{}]", chars.as_str());
-        let field_values_array = field_values_array.replace(":", ",");
-        let array: Vec<Value> = serde_json::from_str(&field_values_array)?;
-        let array: Vec<String> = array.iter().map(|x| x.to_string()).collect();
-        let mut map: HashMap<String, String> = HashMap::new();
-        for i in 0..array.len() / 2 {
-            let key = array.get(i * 2);
-            let value = array.get(i * 2 + 1);
-            if let (Some(key), Some(value)) = (key, value) {
-                let mut key = key.replace("\"", "");
-                let mut chars: Vec<char> = key.chars().collect();
-                let uppercase_char = chars[0].to_uppercase().nth(0);
-                if let Some(uppercase_char) = uppercase_char {
-                    chars[0] = uppercase_char;
-                    key = chars.into_iter().collect();
-                }
-                key = key.replace("_", " ");
-                let value = value.replace("\"", "");
-                map.insert(key.to_string(), value.to_string());
-            }
-        }
+        let mut base_map = self.to_string_vec()?;
+        let category_properties_map = self.category_properties.to_string_vec()?;
 
-        return Ok(map);
+        base_map.extend(category_properties_map);
+
+        Ok(base_map)
     }
 
     fn to_html(&self, order: Option<&Vec<String>>, callback: Callback<Part>) -> Html {
@@ -263,7 +248,7 @@ impl From<DBPart> for Part {
             value.manufactuer, 
             value.release_date, 
             value.rating.into(),
-            PartsCategory::Basic,
+            value.category,
         )
     }
 }

@@ -1,12 +1,14 @@
-use std::fmt::Display;
+use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
-use strum::{EnumIter, IntoEnumIterator, Display};
+use strum::{EnumIter, IntoEnumIterator, Display, EnumString};
 #[cfg(feature = "surreal")]
 use surrealdb::sql::{Value, json};
+use traits::PartProperties;
 use types::StringenFloat;
 
 mod types;
+pub mod traits;
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
 pub struct DBPart {
@@ -52,11 +54,20 @@ pub struct GetPartProps {
     pub limit: u32,
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug, EnumIter, Display)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Default, Debug, EnumIter, Display, EnumString)]
 pub enum PartsCategory {
     #[default]
     Basic,
     CPU(CPUProperties),
+}
+
+impl PartProperties for PartsCategory {
+    fn to_string_vec(&self) -> anyhow::Result<std::collections::HashMap<String, String>> {
+        match self {
+            PartsCategory::Basic => Ok(HashMap::new()),
+            PartsCategory::CPU(props) => props.to_string_vec(),
+        }
+    }
 }
 
 impl PartsCategory {
@@ -87,6 +98,8 @@ pub struct CPUProperties {
     pub socket: String,
     pub max_temperature: u32,
 }
+
+impl PartProperties for CPUProperties {}
 
 #[cfg(feature = "surreal")]
 fn convert_to_value<T>(value: &T) -> anyhow::Result<Value>
