@@ -96,7 +96,7 @@ impl Component for Parts {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Part {
     #[serde(skip_serializing)]
     pub id: String,

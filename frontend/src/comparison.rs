@@ -6,9 +6,14 @@ use yew::prelude::*;
 use crate::{app::AppContext, parts::Part, side_panel::{SidePanel, SidePanelConfig}};
 
 pub struct Comparison {
-    parts: Vec<Part>,
+    comparison_context: Rc<ComparisonContext>,
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ComparisonContext {
+    pub parts: Vec<Part>,
 }
 
 pub enum ComparisonMessage {
@@ -29,8 +34,14 @@ impl Component for Comparison {
         let callback = ctx.link().callback(move |parts| ComparisonMessage::PopulateParts(parts));
         spawn_local(Comparison::get_parts(context.clone(), callback));
 
+        let comparison_context = Rc::new(
+            ComparisonContext {
+                parts: Vec::new(),
+            }
+        );
+
         Self { 
-            parts: Vec::new(),
+            comparison_context,
             context,
             _listener,
         }
@@ -39,7 +50,10 @@ impl Component for Comparison {
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             ComparisonMessage::ContextChanged(context) => self.context = context,
-            ComparisonMessage::PopulateParts(parts) => self.parts = parts,
+            ComparisonMessage::PopulateParts(parts) => {
+                let context = Rc::make_mut(&mut self.comparison_context);
+                context.parts = parts;
+            },
         }
 
         true
@@ -47,7 +61,8 @@ impl Component for Comparison {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let mut parts = Vec::new();
-        for part in &self.parts {
+        let comparison_context = &self.comparison_context;
+        for part in &comparison_context.parts {
             parts.push(html! {
                 <>
                     {&part.name}
@@ -57,11 +72,13 @@ impl Component for Comparison {
         }
 
         html! {
-            <div class={classes!("comparison")}>
-                <SidePanel config={SidePanelConfig::Tabs} />
-                <h2>{"Selected:"}</h2>
-                <h2>{parts}</h2>
-            </div>
+            <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
+                <div class={classes!("comparison")}>
+                    <SidePanel config={SidePanelConfig::Tabs} />
+                    <h2>{"Selected:"}</h2>
+                    <h2>{parts}</h2>
+                </div>
+            </ContextProvider<Rc<ComparisonContext>>>
         }
     }
 }
