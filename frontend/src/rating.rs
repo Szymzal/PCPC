@@ -26,7 +26,7 @@ impl Component for Rating {
                     format!("--percent: {}%", percent)
                 }
             >
-
+            {"★★★★★"}
             </div>
         }
     }

@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::str::FromStr;
 
 use common::{PartsCategory, traits::PartProperties};
 use serde::Serialize;
@@ -30,8 +29,7 @@ impl Component for Filter {
             .context::<Rc<AppContext>>(ctx.link().callback(FilterMessage::ContextChanged))
             .unwrap();
 
-        let selected_category = PartsCategory::from_str(&context.selected_category)
-            .unwrap_or(PartsCategory::Basic);
+        let selected_category = PartsCategory::from_string(&context.selected_category);
         let ordering = ordering(selected_category);
         if context.properties_order.is_empty() {
             context.properties_order_callback.emit(ordering.clone());
@@ -68,11 +66,9 @@ impl Component for Filter {
                 context.properties_order_callback.emit(current_properties_order);
             },
             FilterMessage::CategorySelectedChanged(category_string) => {
-                let category = PartsCategory::from_str(&category_string)
-                    .unwrap_or(PartsCategory::Basic);
+                let category = PartsCategory::from_string(&category_string);
                 let ordering = ordering(category);
                 self.ordering = ordering.clone();
-                web_sys::console::log_1(&format!("Ordering: {:?}", ordering).into());
                 self.context.properties_order_callback.emit(ordering);
                 self.context.selected_category_callback.emit(category_string);
             },
@@ -111,8 +107,8 @@ impl Component for Filter {
         }
 
         html! {
-            <div class={classes!("filter")}>
-                <div class={classes!("filter-content")}>
+            <div class={classes!("side-panel")}>
+                <div class={classes!("filter")}>
                     <h2>{"Category"}</h2>
                     {categories_html}
                     <h2>{"Properties"}</h2>

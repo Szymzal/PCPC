@@ -3,7 +3,7 @@ use std::rc::Rc;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{app::AppContext, parts::Part};
+use crate::{app::AppContext, parts::Part, side_panel::{SidePanel, SidePanelConfig}};
 
 pub struct Comparison {
     parts: Vec<Part>,
@@ -58,6 +58,7 @@ impl Component for Comparison {
 
         html! {
             <div class={classes!("comparison")}>
+                <SidePanel config={SidePanelConfig::Tabs} />
                 <h2>{"Selected:"}</h2>
                 <h2>{parts}</h2>
             </div>

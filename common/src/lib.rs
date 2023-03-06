@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use serde::{Serialize, Deserialize};
 use strum::{EnumIter, IntoEnumIterator, Display, EnumString};
@@ -78,6 +78,10 @@ impl PartsCategory {
         }
 
         return variants;
+    }
+
+    pub fn from_string(string: &str) -> PartsCategory {
+        PartsCategory::from_str(string).unwrap_or(PartsCategory::Basic)
     }
 }
 

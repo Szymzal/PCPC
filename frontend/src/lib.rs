@@ -12,6 +12,7 @@ mod connection;
 mod filter;
 mod icons;
 mod rating;
+mod side_panel;
 
 #[function_component]
 fn Footer() -> Html {
