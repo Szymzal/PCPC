@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use log::info;
+use common::{PartsCategory, traits::PartProperties};
 use yew::prelude::*;
 
 use crate::{app::AppContext, comparison::ComparisonContext};
@@ -21,6 +21,7 @@ pub struct SidePanel {
 pub enum SidePanelMessage {
     ContextChanged(Rc<AppContext>),
     ComparisonContextChanged(Rc<ComparisonContext>),
+    SetSelectedCategory(String),
 }
 
 #[derive(Properties, PartialEq, Clone)]
@@ -55,6 +56,7 @@ impl Component for SidePanel {
         match msg {
             SidePanelMessage::ContextChanged(context) => self.context = context,
             SidePanelMessage::ComparisonContextChanged(context) => self.comparison_context = context,
+            SidePanelMessage::SetSelectedCategory(category) => self.context.selected_category_callback.emit(category),
         }
 
         true 
@@ -65,10 +67,20 @@ impl Component for SidePanel {
         let comparison_context = &self.comparison_context;
         let div = match &props.config {
             SidePanelConfig::Settings => {
+                let settings = settings(PartsCategory::from_string(&self.context.selected_category));
+                let settings: Vec<Html> = settings.iter().map(|x| {
+                    html! {
+                        <div class={classes!("settings")}>
+                            <h2>{x}</h2>
+                        </div>
+                    }
+                }).collect();
+
                 html! {
                     <div
                         class={classes!("settings")}>
                         <h2>{"Settings"}</h2>
+                        {settings}
                     </div>
                 }
             },
@@ -81,9 +93,21 @@ impl Component for SidePanel {
                     }
                 }
 
+                let main_callback = ctx.link().callback(move |category| SidePanelMessage::SetSelectedCategory(category));
+
                 let tabs: Vec<Html> = categories.iter().map(|x| {
+                    let callback = {
+                        let callback_cloned = main_callback.clone();
+                        let category = x.clone();
+                        Callback::from(move |_| {
+                            callback_cloned.emit(category.clone());
+                        })
+                    };
+
                     html! {
-                        <div class={classes!("tab")}>
+                        <div 
+                            onclick={callback}
+                            class={classes!("tab")}>
                             <h2>{x}</h2>
                         </div>
                     }
@@ -107,4 +131,15 @@ impl Component for SidePanel {
             </div>
         }
     }
+}
+
+fn settings(category: PartsCategory) -> Vec<String> {
+    let category_field_map = category.to_string_vec();
+    let mut category_field_names: Vec<String> = Vec::new();
+    if let Ok(category_field_map) = category_field_map {
+        for (key, _) in category_field_map {
+            category_field_names.push(key);
+        }
+    }
+    category_field_names
 }
