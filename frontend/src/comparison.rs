@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use common::PartsCategory;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
@@ -60,26 +61,72 @@ impl Component for Comparison {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        let mut parts = Vec::new();
+        let mut part_names = Vec::new();
         let comparison_context = &self.comparison_context;
-        for part in &comparison_context.parts {
-            parts.push(html! {
-                <>
+        let comparison_parts = &comparison_context.parts;
+        for part in comparison_parts {
+            part_names.push(html! {
+                <th>
                     {&part.name}
-                    <br/>
-                </>
+                </th>
             });
+        }
+
+        let default_part = Part {
+            category_properties: PartsCategory::from_string(&self.context.selected_category),
+            ..Default::default()
+        };
+        let default_part_string = default_part.get_properties_as_map();
+        let mut properties: Vec<Html> = Vec::new();
+        if let Ok(default_part_string) = default_part_string {
+            for property in default_part_string.keys() {
+                properties.push(get_property_from_parts(comparison_parts, property.to_string()));
+            }
         }
 
         html! {
             <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
                 <div class={classes!("comparison")}>
                     <SidePanel config={SidePanelConfig::Tabs} />
-                    <h2>{"Selected:"}</h2>
-                    <h2>{parts}</h2>
+                    <table class={classes!("comparison-table")}>
+                        <tr>
+                            <th></th>
+                            {part_names}
+                        </tr>
+                        {properties}
+                    </table>
                 </div>
             </ContextProvider<Rc<ComparisonContext>>>
         }
+    }
+}
+
+fn get_property_from_parts(parts: &Vec<Part>, property: String) -> Html {
+    let mut part_properties: Vec<Html> = Vec::new();
+    part_properties.push(html! {
+        <td>
+            {&property}
+        </td>
+    });
+
+    for part in parts {
+        let properties = part.get_properties_as_map();
+        if let Ok(properties) = properties {
+            let property = properties.get(&property);
+            if let Some(property) = property {
+                part_properties.push(html! {
+                    <td>
+                        {property}
+                    </td>
+                });
+            }
+        }
+    }
+
+    html! {
+        <tr>
+            {part_properties}
+        </tr>
     }
 }
 

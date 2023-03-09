@@ -152,7 +152,7 @@ impl Part {
         }
     }
 
-    fn get_properties_as_map(&self) -> anyhow::Result<HashMap<String, String>> {
+    pub fn get_properties_as_map(&self) -> anyhow::Result<HashMap<String, String>> {
         let mut base_map = self.to_string_vec()?;
         let category_properties_map = self.category_properties.to_string_vec()?;
 
