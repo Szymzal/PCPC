@@ -303,3 +303,24 @@ body {
     background: red;
     cursor: e-resize;
 }
+
+.tabs {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.tab {
+    width: 80%;
+    display: flex;
+    background-color: grey;
+    border-radius: 20px;
+    cursor: pointer;
+    margin: 5px;
+    justify-content: center;
+}
+
+.selected {
+    background-color: green;
+}

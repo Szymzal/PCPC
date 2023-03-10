@@ -17,7 +17,7 @@ pub struct DBPart {
     pub image_url: String,
     pub model: String,
     pub manufactuer: String,
-    pub release_date: u64,
+    pub release_date: String,
     pub rating: StringenFloat,
     pub category: PartsCategory,
 }
@@ -28,7 +28,7 @@ pub struct DBPartProps {
     pub image_url: String,
     pub model: String,
     pub manufactuer: String,
-    pub release_date: u64,
+    pub release_date: String,
     pub rating: StringenFloat,
     pub category: PartsCategory,
 }
@@ -89,18 +89,18 @@ impl PartsCategory {
 pub struct CPUProperties {
     pub cores: u32,
     pub threads: u32,
-    pub max_frequency: StringenFloat,
-    pub base_frequency: StringenFloat,
-    pub max_tdp: u32,
-    pub base_tdp: u32,
-    pub cache: u32,
-    pub max_ram_size: u32,
+    pub max_frequency: String,
+    pub base_frequency: String,
+    pub max_tdp: String,
+    pub base_tdp: String,
+    pub cache: String,
+    pub max_ram_size: String,
     pub max_memory_channels: u32,
     pub ecc_memory_supported: bool,
     pub max_pcie_lanes: u32,
-    pub max_supported_pcie_version: StringenFloat,
+    pub max_supported_pcie_version: String,
     pub socket: String,
-    pub max_temperature: u32,
+    pub max_temperature: String,
 }
 
 impl PartProperties for CPUProperties {}
@@ -173,7 +173,7 @@ mod tests {
             image_url: "".into(),
             model: "LKFHDS".into(),
             manufactuer: "Chinese".into(),
-            release_date: 12092235,
+            release_date: "22Q2".to_string(),
             rating: 4.5.into(),
             category: crate::PartsCategory::Basic,
         };

@@ -63,8 +63,9 @@ impl Component for Comparison {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         let mut part_names = Vec::new();
         let comparison_context = &self.comparison_context;
-        let comparison_parts = &comparison_context.parts;
-        for part in comparison_parts {
+        let mut comparison_parts = comparison_context.parts.clone();
+        comparison_parts.retain(|x| x.category_properties.to_string() == self.context.selected_category);
+        for part in &mut *comparison_parts {
             part_names.push(html! {
                 <th>
                     {&part.name}
@@ -80,7 +81,7 @@ impl Component for Comparison {
         let mut properties: Vec<Html> = Vec::new();
         if let Ok(default_part_string) = default_part_string {
             for property in default_part_string.keys() {
-                properties.push(get_property_from_parts(comparison_parts, property.to_string()));
+                properties.push(get_property_from_parts(&comparison_parts, property.to_string()));
             }
         }
 
@@ -104,9 +105,9 @@ impl Component for Comparison {
 fn get_property_from_parts(parts: &Vec<Part>, property: String) -> Html {
     let mut part_properties: Vec<Html> = Vec::new();
     part_properties.push(html! {
-        <td>
+        <th>
             {&property}
-        </td>
+        </th>
     });
 
     for part in parts {

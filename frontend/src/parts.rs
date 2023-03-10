@@ -110,7 +110,7 @@ pub struct Part {
     pub image_url: String,
     pub model: String,
     pub manufactuer: String,
-    pub release_date: u64,
+    pub release_date: String,
     #[serde(skip_serializing)]
     pub rating: f32,
     #[serde(skip_serializing)]
@@ -132,7 +132,7 @@ impl Part {
         image_url: T,
         model: T,
         manufactuer: T,
-        release_date: u64,
+        release_date: String,
         rating: f32,
         category: PartsCategory,
     ) -> Self 
@@ -231,7 +231,7 @@ impl Default for Part {
             image_url: "".into(), 
             model: "".into(), 
             manufactuer: "".into(), 
-            release_date: 0, 
+            release_date: "".to_string(), 
             rating: 0.0,
             category_properties: PartsCategory::Basic,
         }

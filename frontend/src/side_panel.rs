@@ -104,12 +104,24 @@ impl Component for SidePanel {
                         })
                     };
 
-                    html! {
-                        <div 
-                            onclick={callback}
-                            class={classes!("tab")}>
-                            <h2>{x}</h2>
-                        </div>
+                    let selected = x == &self.context.selected_category;
+
+                    if selected {
+                        html! {
+                            <div 
+                                onclick={callback}
+                                class={classes!("tab", "selected")}>
+                                <h2>{x}</h2>
+                            </div>
+                        }
+                    } else {
+                        html! {
+                            <div 
+                                onclick={callback}
+                                class={classes!("tab")}>
+                                <h2>{x}</h2>
+                            </div>
+                        }
                     }
                 }).collect();
 

@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use common::{GetPartProps, DBPart, PartsCategory};
+use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlDivElement;
 use yew::prelude::*;

@@ -66,11 +66,13 @@ impl Component for Filter {
                 context.properties_order_callback.emit(current_properties_order);
             },
             FilterMessage::CategorySelectedChanged(category_string) => {
-                let category = PartsCategory::from_string(&category_string);
-                let ordering = ordering(category);
-                self.ordering = ordering.clone();
-                self.context.properties_order_callback.emit(ordering);
-                self.context.selected_category_callback.emit(category_string);
+                if self.context.selected_category != category_string {
+                    let category = PartsCategory::from_string(&category_string);
+                    let ordering = ordering(category);
+                    self.ordering = ordering.clone();
+                    self.context.properties_order_callback.emit(ordering);
+                    self.context.selected_category_callback.emit(category_string);
+                }
             },
         }
 

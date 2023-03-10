@@ -192,23 +192,23 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
             image_url: "https://www.intel.com/content/dam/www/central-libraries/xa/en/images/intel-core-i5-badge-1440x1080.png.rendition.intel.web.64.64.png".into(), 
             model: "i5-13500".into(), 
             manufactuer: "Intel".into(), 
-            release_date: 1672527600, 
+            release_date: "22Q4".to_string(), 
             rating: 3.5.into(), 
             category: PartsCategory::CPU(CPUProperties { 
                 cores: 14, 
                 threads: 20, 
-                max_frequency: 4.80.into(), // GHz
-                base_frequency: 1.80.into(), // GHz
-                max_tdp: 154, // W
-                base_tdp: 65, // W
-                cache: 24, // MB
-                max_ram_size: 128, // GB
+                max_frequency: "4.80 GHz".to_string(),
+                base_frequency: "1.80 GHz".to_string(),
+                max_tdp: "154 W".to_string(),
+                base_tdp: "65 W".to_string(),
+                cache: "24 MB".to_string(),
+                max_ram_size: "128 GB".to_string(),
                 max_memory_channels: 2, 
                 ecc_memory_supported: true, 
                 max_pcie_lanes: 20, 
-                max_supported_pcie_version: 5.0.into(), 
+                max_supported_pcie_version: "5.0".to_string(), 
                 socket: "FCLGA1700".into(), 
-                max_temperature: 100, // C
+                max_temperature: "100 C".to_string(),
             }),
         }
     ];
@@ -269,7 +269,7 @@ mod tests {
                     image_url: "".into(),
                     model: "Some model".into(),
                     manufactuer: "AOC".into(),
-                    release_date: 1676658105,
+                    release_date: "23Q1".to_string(),
                     rating: 4.5.into(),
                     category: PartsCategory::Basic,
                 };
