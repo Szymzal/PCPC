@@ -3,7 +3,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{parts::Parts, app::{AppContext, AppRoute}, comparison::Comparison, home::Home, create::CreatePart, partpage::PartPage};
+use crate::{parts::Parts, app::{AppContext, AppRoute}, comparison::Comparison, home::Home, create::CreatePart, partpage::PartPage, favorites::Favorites};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum ContentPage {
@@ -57,6 +57,7 @@ fn switch(routes: AppRoute) -> Html {
         AppRoute::Parts => html! { <Parts /> },
         AppRoute::Comparison => html! { <Comparison /> },
         AppRoute::Create => html! { <CreatePart /> },
+        AppRoute::Favorites => html! { <Favorites /> },
         AppRoute::NotFound => html! { <h1>{ "404" }</h1> },
         AppRoute::Part { id } => html! { <PartPage part_id={id} /> },
     }

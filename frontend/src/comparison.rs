@@ -1,15 +1,16 @@
-use std::rc::Rc;
+use std::{rc::Rc, collections::HashMap};
 
 use common::PartsCategory;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
-use crate::{app::AppContext, parts::Part, side_panel::{SidePanel, SidePanelConfig}};
+use crate::{app::AppContext, parts::{Part, format_property}, side_panel::{SidePanel, SidePanelConfig}};
 
 pub struct Comparison {
     comparison_context: Rc<ComparisonContext>,
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
+    config: Option<SidePanelConfig>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -20,6 +21,7 @@ pub struct ComparisonContext {
 pub enum ComparisonMessage {
     ContextChanged(Rc<AppContext>),
     PopulateParts(Vec<Part>),
+    ChangeConfig(SidePanelConfig),
 }
 
 impl Component for Comparison {
@@ -45,6 +47,7 @@ impl Component for Comparison {
             comparison_context,
             context,
             _listener,
+            config: Some(SidePanelConfig::Tabs),
         }
     }
 
@@ -55,49 +58,94 @@ impl Component for Comparison {
                 let context = Rc::make_mut(&mut self.comparison_context);
                 context.parts = parts;
             },
+            ComparisonMessage::ChangeConfig(new_config) => {
+                if let Some(config) = &self.config {
+                    if config == &new_config {
+                        self.config = None;
+                        return true;
+                    }
+                }
+
+                self.config = Some(new_config);
+            },
         }
 
         true
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let mut part_names = Vec::new();
         let comparison_context = &self.comparison_context;
         let mut comparison_parts = comparison_context.parts.clone();
-        comparison_parts.retain(|x| x.category_properties.to_string() == self.context.selected_category);
-        for part in &mut *comparison_parts {
-            part_names.push(html! {
-                <th>
-                    {&part.name}
-                </th>
-            });
-        }
-
-        let default_part = Part {
-            category_properties: PartsCategory::from_string(&self.context.selected_category),
-            ..Default::default()
-        };
-        let default_part_string = default_part.get_properties_as_map();
-        let mut properties: Vec<Html> = Vec::new();
-        if let Ok(default_part_string) = default_part_string {
-            for property in default_part_string.keys() {
-                properties.push(get_property_from_parts(&comparison_parts, property.to_string()));
+        if !comparison_parts.is_empty() {
+            comparison_parts.retain(|x| x.category_properties.to_string() == self.context.selected_category);
+            for part in &mut *comparison_parts {
+                part_names.push(html! {
+                    <th>
+                        {&part.name}
+                    </th>
+                });
             }
+
+            let mut properties: Vec<Html> = Vec::new();
+            let selected_category = PartsCategory::from_string(&self.context.selected_category);
+            let template_part = Part {
+                category_properties: selected_category,
+                ..Default::default()
+            };
+            let template_properties = template_part.get_properties_as_map().unwrap_or(HashMap::new());
+            for (property, visible) in &self.context.properties_order {
+                if *visible && template_properties.contains_key(property) {
+                    properties.push(get_property_from_parts(&comparison_parts, property.to_string()));
+                }
+            }
+
+            let tabs_callback = ctx.link().callback(|_| ComparisonMessage::ChangeConfig(SidePanelConfig::Tabs));
+            let settings_callback = ctx.link().callback(|_| ComparisonMessage::ChangeConfig(SidePanelConfig::Settings));
+
+            let config;
+            if let Some(stored_config) = &self.config {
+                config = stored_config.clone();
+            } else {
+                // Placeholder
+                config = SidePanelConfig::Tabs;
+            }
+
+            let side_panel = self.config.is_some();
+
+            return html! {
+                <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
+                    <div class={classes!("comparison")}>
+                        if side_panel {
+                            <SidePanel config={config} />
+                        }
+                        <table class={classes!("comparison-table")}>
+                            <tr>
+                                <th>
+                                    <div 
+                                        onclick={tabs_callback}
+                                        class={classes!("comparison-button")}>
+                                        <h5>{"Tabs"}</h5>
+                                    </div>
+                                    <div 
+                                        onclick={settings_callback}
+                                        class={classes!("comparison-button")}>
+                                        <h5>{"Settings"}</h5>
+                                    </div>
+                                </th>
+                                {part_names}
+                            </tr>
+                            {properties}
+                        </table>
+                    </div>
+                </ContextProvider<Rc<ComparisonContext>>>
+            };
         }
 
-        html! {
-            <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
-                <div class={classes!("comparison")}>
-                    <SidePanel config={SidePanelConfig::Tabs} />
-                    <table class={classes!("comparison-table")}>
-                        <tr>
-                            <th></th>
-                            {part_names}
-                        </tr>
-                        {properties}
-                    </table>
-                </div>
-            </ContextProvider<Rc<ComparisonContext>>>
+        html! { 
+            <div class={classes!("comparison-empty")}>
+                <h2>{"Add parts to compare"}</h2> 
+            </div>
         }
     }
 }
@@ -113,13 +161,44 @@ fn get_property_from_parts(parts: &Vec<Part>, property: String) -> Html {
     for part in parts {
         let properties = part.get_properties_as_map();
         if let Ok(properties) = properties {
-            let property = properties.get(&property);
-            if let Some(property) = property {
-                part_properties.push(html! {
-                    <td>
-                        {property}
-                    </td>
-                });
+            let first_property = properties.get(&property);
+            if let Some(first_property) = first_property {
+                let first_property = format_property(first_property.to_owned());
+
+                let mut different = false;
+                for second_part in parts {
+                    let properties = second_part.get_properties_as_map();
+                    if let Ok(properties) = properties {
+                        let second_property = properties.get(&property);
+                        if let Some(second_property) = second_property {
+                            let second_property = format_property(second_property.to_owned());
+
+                            if second_property != first_property {
+                                different = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                let result = match different {
+                    true => {
+                        html! {
+                            <td class={classes!("different")}>
+                                {&first_property}
+                            </td>
+                        }
+                    },
+                    false => {
+                        html! {
+                            <td>
+                                {&first_property}
+                            </td>
+                        }
+                    },
+                };
+
+                part_properties.push(result);
             }
         }
     }

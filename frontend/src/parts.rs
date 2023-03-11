@@ -17,7 +17,8 @@ pub struct Parts {
 pub enum PartsMessage {
     ContextChanged(Rc<AppContext>),
     AddParts(Vec<Part>),
-    SetSelected(Part, bool),
+    SetSelected(String, bool),
+    SetFavorite(String, bool),
 }
 
 impl Component for Parts {
@@ -45,20 +46,32 @@ impl Component for Parts {
         match msg {
             PartsMessage::AddParts(mut parts) => {
                 let selected_parts = &self.context.selected_parts;
+                let favorited_parts = &self.context.favorites;
                 for part in parts.iter_mut() {
                     if selected_parts.contains(&part.id) {
                         part.selected = true;
+                    }
+
+                    if favorited_parts.contains(&part.id) {
+                        part.favorited = true;
                     }
                 }
 
                 self.parts.append(&mut parts);
             }
             PartsMessage::ContextChanged(context) => self.context = context,
-            PartsMessage::SetSelected(part, selected) => {
-                let part = self.parts.iter_mut().find(|x| **x == part);
+            PartsMessage::SetSelected(part_id, selected) => {
+                let part = self.parts.iter_mut().find(|x| x.id == part_id);
                 if let Some(part) = part {
                     part.selected = selected;
                     self.context.selected_parts_callback.emit((part.id.clone(), selected));
+                }
+            },
+            PartsMessage::SetFavorite(part_id, favorited) => {
+                let part = self.parts.iter_mut().find(|x| x.id == part_id);
+                if let Some(part) = part {
+                    part.favorited = favorited;
+                    self.context.favorites_callback.emit((part.id.clone(), favorited));
                 }
             },
         }
@@ -67,14 +80,16 @@ impl Component for Parts {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let callback = ctx.link().callback(move |part: Part| {
-            PartsMessage::SetSelected(part.clone(), !part.selected.clone())
-        });
+        let callback_selected = ctx.link().callback(move |(part_id, selected): (String, bool)| PartsMessage::SetSelected(part_id.clone(), !selected));
+        let callback_favorite = ctx.link().callback(move |(part_id, selected): (String, bool)| PartsMessage::SetFavorite(part_id.clone(), !selected));
 
-        let ordering_properties = &self.context.properties_order;
+        let mut ordering_properties = self.context.properties_order.clone();
         let parts: Html = self.parts.iter().map(|part| {
-            if self.context.selected_category == part.category_properties.to_string() {
-                return part.to_html(Some(ordering_properties), callback.clone());
+            if self.context.selected_category == part.category_properties.to_string() &&
+                part.name.to_lowercase().contains(&self.context.search_term.to_lowercase()) {
+                ordering_properties.retain(|_, selected| *selected);
+                let ordering_properties: Vec<&String> = ordering_properties.keys().collect();
+                return part.to_html(Some(&ordering_properties), callback_selected.clone(), callback_favorite.clone());
             }
             
             return html! {}
@@ -155,18 +170,28 @@ impl Part {
     pub fn get_properties_as_map(&self) -> anyhow::Result<HashMap<String, String>> {
         let mut base_map = self.to_string_vec()?;
         let category_properties_map = self.category_properties.to_string_vec()?;
-
+        
         base_map.extend(category_properties_map);
 
         Ok(base_map)
     }
 
-    fn to_html(&self, order: Option<&Vec<String>>, callback: Callback<Part>) -> Html {
+    pub fn to_html(&self, order: Option<&Vec<&String>>, callback_selected: Callback<(String, bool)>, callback_favorite: Callback<(String, bool)>) -> Html {
         let on_click_selected = {
-            let callback = callback.clone();
-            let part = self.clone();
+            let callback = callback_selected.clone();
+            let part_id = self.id.clone();
+            let part_selected = self.selected;
             Callback::from(move |_| {
-                callback.emit(part.clone())
+                callback.emit((part_id.clone(), part_selected))
+            })
+        };
+
+        let on_click_favorite = {
+            let callback = callback_favorite.clone();
+            let part_id = self.id.clone();
+            let part_favorited = self.favorited;
+            Callback::from(move |_| {
+                callback.emit((part_id.clone(), part_favorited))
             })
         };
 
@@ -174,12 +199,13 @@ impl Part {
         let mut properties: Vec<Html> = Vec::new();
         if let (Ok(map), Some(order)) = (map, order) {
             for key in order {
-                let value = map.get(key);
+                let value = map.get(*key);
                 if let Some(value) = value {
+                    let value = format_property(value.to_owned());
                     properties.push(html! {
                         <div class={classes!("part_specification")}>
                             <h4>{format!("{}:", key.to_owned())}</h4>
-                            <h5>{value.to_owned()}</h5>
+                            <h5>{value}</h5>
                         </div>
                     });
                 }
@@ -208,9 +234,9 @@ impl Part {
                                 alt="Select" 
                             />
                         </div>
-                        <div class={classes!("part_action")}>
+                        <div class={classes!("part_action")} onclick={on_click_favorite}>
                             <img 
-                                src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
+                                src= { if !self.favorited { "https://cdn-icons-png.flaticon.com/512/1077/1077035.png" } else { "https://cdn-icons-png.flaticon.com/512/1077/1077086.png" } }
                                 alt="Favorite"
                             />
                         </div>
@@ -250,5 +276,13 @@ impl From<DBPart> for Part {
             value.rating.into(),
             value.category,
         )
+    }
+}
+
+pub fn format_property(property: String) -> String {
+    match property.as_str() {
+        "true" => "Yes".to_string(),
+        "false" => "No".to_string(),
+        _ => property,
     }
 }

@@ -210,6 +210,30 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
                 socket: "FCLGA1700".into(), 
                 max_temperature: "100 C".to_string(),
             }),
+        },
+        DBPartProps { 
+            name: "Intel Core i5-12500".into(), 
+            image_url: "https://www.intel.com/content/dam/www/central-libraries/xa/en/images/intel-core-i5-badge-1440x1080.png.rendition.intel.web.64.64.png".into(), 
+            model: "i5-12500".into(), 
+            manufactuer: "Intel".into(), 
+            release_date: "21Q4".to_string(), 
+            rating: 2.5.into(), 
+            category: PartsCategory::CPU(CPUProperties { 
+                cores: 6, 
+                threads: 12, 
+                max_frequency: "3.80 GHz".to_string(),
+                base_frequency: "1.80 GHz".to_string(),
+                max_tdp: "54 W".to_string(),
+                base_tdp: "54 W".to_string(),
+                cache: "12 MB".to_string(),
+                max_ram_size: "128 GB".to_string(),
+                max_memory_channels: 2, 
+                ecc_memory_supported: true, 
+                max_pcie_lanes: 20, 
+                max_supported_pcie_version: "4.0".to_string(), 
+                socket: "FCLGA1700".into(), 
+                max_temperature: "100 C".to_string(),
+            }),
         }
     ];
 

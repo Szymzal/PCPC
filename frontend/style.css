@@ -56,7 +56,7 @@ body {
 
 .content {
     background-color: green;
-    height: 90vh;
+    height: 95vh;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -67,7 +67,8 @@ body {
     height: 5vh;
 }
 
-.comparison {
+.comparison,
+.comparison-empty {
     display: flex;
     height: 100%;
 }
@@ -263,7 +264,8 @@ body {
     display: none;
 }
 
-.filter {
+.filter,
+.settings {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -292,11 +294,6 @@ body {
     min-height: 15px;
 }
 
-.filter h2 {
-    margin-left: 10px;
-    font-family: 'Open Sans', Arial;
-}
-
 .resizer-right {
     width: 10px;
     min-height: 100%;
@@ -323,4 +320,37 @@ body {
 
 .selected {
     background-color: green;
+}
+
+.comparison-table {
+    border-collapse: collapse;
+    margin: 15px;
+}
+
+.comparison-table tr th,
+.comparison-table tr td {
+    border: 2px solid black;
+    padding: 5px;
+}
+
+.comparison-table > tr:first-child > th:first-child {
+    border: none;
+}
+
+.comparison-empty {
+    justify-content: center;
+    align-items: center;
+}
+
+.different {
+    background-color: blue;
+}
+
+.side-panel h2 {
+    font-family: 'Open Sans', Arial;
+    margin-left: 10px;
+}
+
+.tab h2 {
+    margin-left: 0px;
 }

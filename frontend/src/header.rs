@@ -19,7 +19,7 @@ impl Component for Header {
                 <img src="" alt="logo" class={classes!("logo")} />
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Parts}>{ "Parts" }</Link<AppRoute>>
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Comparison}>{ "Compare" }</Link<AppRoute>>
-                <div class={classes!("link")}>{ "Favorites" }</div>
+                <Link<AppRoute> classes={classes!("link")} to={AppRoute::Favorites}>{ "Favorites" }</Link<AppRoute>>
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Create}>{ "Create" }</Link<AppRoute>>
             </div>
         }

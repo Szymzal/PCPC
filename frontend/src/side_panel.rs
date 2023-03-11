@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use common::{PartsCategory, traits::PartProperties};
 use yew::prelude::*;
 
-use crate::{app::AppContext, comparison::ComparisonContext};
+use crate::{app::AppContext, comparison::ComparisonContext, filter::Property};
 
 #[derive(Clone, PartialEq)]
 pub enum SidePanelConfig {
@@ -22,6 +21,7 @@ pub enum SidePanelMessage {
     ContextChanged(Rc<AppContext>),
     ComparisonContextChanged(Rc<ComparisonContext>),
     SetSelectedCategory(String),
+    FilterVisibilityChanged((String, bool)),
 }
 
 #[derive(Properties, PartialEq, Clone)]
@@ -57,6 +57,12 @@ impl Component for SidePanel {
             SidePanelMessage::ContextChanged(context) => self.context = context,
             SidePanelMessage::ComparisonContextChanged(context) => self.comparison_context = context,
             SidePanelMessage::SetSelectedCategory(category) => self.context.selected_category_callback.emit(category),
+            SidePanelMessage::FilterVisibilityChanged((name, selected)) => {
+                let context = &self.context;
+                let mut properties_order = context.properties_order.clone();
+                properties_order.insert(name, selected);
+                context.properties_order_callback.emit(properties_order);
+            },
         }
 
         true 
@@ -67,12 +73,13 @@ impl Component for SidePanel {
         let comparison_context = &self.comparison_context;
         let div = match &props.config {
             SidePanelConfig::Settings => {
-                let settings = settings(PartsCategory::from_string(&self.context.selected_category));
+                let callback = ctx.link().callback(move |(name, selected)| SidePanelMessage::FilterVisibilityChanged((name, selected)));
+                let settings = &self.context.properties_order;
                 let settings: Vec<Html> = settings.iter().map(|x| {
+                    let name = x.0;
+                    let selected = *x.1;
                     html! {
-                        <div class={classes!("settings")}>
-                            <h2>{x}</h2>
-                        </div>
+                        <Property name={name.to_owned()} selected={selected} callback={callback.clone()} />
                     }
                 }).collect();
 
@@ -143,15 +150,4 @@ impl Component for SidePanel {
             </div>
         }
     }
-}
-
-fn settings(category: PartsCategory) -> Vec<String> {
-    let category_field_map = category.to_string_vec();
-    let mut category_field_names: Vec<String> = Vec::new();
-    if let Ok(category_field_map) = category_field_map {
-        for (key, _) in category_field_map {
-            category_field_names.push(key);
-        }
-    }
-    category_field_names
 }

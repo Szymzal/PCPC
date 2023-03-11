@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::app::AppContext;
@@ -45,6 +47,15 @@ impl Component for SearchBar {
             })
         };
 
+        let input_callback = self.context.search_term_callback.clone();
+        let input = Callback::from(move |input_event: InputEvent| {
+            let event: Event = input_event.dyn_into().unwrap_throw();
+            let event_target = event.target().unwrap_throw();
+            let target: HtmlInputElement = event_target.dyn_into().unwrap_throw();
+            let value = target.value();
+            input_callback.emit(value);
+        });
+
         html! {
             <div class={classes!("search-bar-container")}>
                 <div 
@@ -61,7 +72,7 @@ impl Component for SearchBar {
                         src="https://cdn-icons-png.flaticon.com/512/622/622669.png" 
                         alt="Search icon" 
                     />
-                    <input type="text" />
+                    <input type="text" value={self.context.search_term.to_owned()} oninput={input} />
                 </div>
             </div>
         }

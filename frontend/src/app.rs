@@ -1,13 +1,12 @@
-use std::rc::Rc;
+use std::{rc::Rc, collections::HashMap};
 
 use common::{GetPartProps, DBPart, PartsCategory};
-use log::info;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlDivElement;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{content::{ContentPage, Content}, header::Header, Footer, parts::Part, connection::post_from_db};
+use crate::{content::{ContentPage, Content}, header::Header, parts::Part, connection::post_from_db};
 
 #[derive(Clone, PartialEq)]
 pub struct AppContext {
@@ -15,12 +14,16 @@ pub struct AppContext {
     pub content_page_callback: Callback<ContentPage>,
     pub selected_parts: Vec<String>,
     pub selected_parts_callback: Callback<(String, bool)>,
-    pub properties_order: Vec<String>,
-    pub properties_order_callback: Callback<Vec<String>>,
+    pub properties_order: HashMap<String, bool>,
+    pub properties_order_callback: Callback<HashMap<String, bool>>,
     pub selected_category: String,
     pub selected_category_callback: Callback<String>,
     pub filter_visibility: bool,
     pub filter_visibility_callback: Callback<bool>,
+    pub favorites: Vec<String>,
+    pub favorites_callback: Callback<(String, bool)>,
+    pub search_term: String,
+    pub search_term_callback: Callback<String>,
 }
 
 pub async fn get_part_with_callback(context: Rc<AppContext>, id: String, callback: Callback<Part>) {
@@ -82,9 +85,11 @@ pub enum AppMessage {
     UpdateSelectedPart(String, bool),
     SetMouseEventSelected(Option<MouseEvent>),
     UpdateSizeOfSelectedElement(MouseEvent),
-    OrderPropertiesChange(Vec<String>),
+    OrderPropertiesChange(HashMap<String, bool>),
     SetSelectedCategory(String),
     SetFilterVisibility(bool),
+    UpdateFavorite((String, bool)),
+    UpdateSearchTerm(String),
 }
 
 impl Component for App {
@@ -97,18 +102,24 @@ impl Component for App {
         let properties_order_callback = ctx.link().callback(move |new_ordering_properties| AppMessage::OrderPropertiesChange(new_ordering_properties));
         let filter_visibility_callback = ctx.link().callback(move |filter_visibility| AppMessage::SetFilterVisibility(filter_visibility));
         let selected_category_callback = ctx.link().callback(move |selected_category| AppMessage::SetSelectedCategory(selected_category));
+        let favorites_callback = ctx.link().callback(move |(id, favorite)| AppMessage::UpdateFavorite((id, favorite)));
+        let search_term_callback = ctx.link().callback(move |search_term| AppMessage::UpdateSearchTerm(search_term));
 
         let context = Rc::new(AppContext {
             content_page: ContentPage::Parts,
             content_page_callback,
             selected_parts: Vec::new(),
             selected_parts_callback,
-            properties_order: Vec::new(),
+            properties_order: HashMap::new(),
             properties_order_callback,
             selected_category: PartsCategory::Basic.to_string(),
             selected_category_callback,
             filter_visibility: true,
             filter_visibility_callback,
+            favorites: Vec::new(),
+            favorites_callback,
+            search_term: "".to_string(),
+            search_term_callback,
         });
 
         Self { 
@@ -159,6 +170,14 @@ impl Component for App {
             AppMessage::OrderPropertiesChange(properties_order) => app_context.properties_order = properties_order,
             AppMessage::SetFilterVisibility(filter_visibility) => app_context.filter_visibility = filter_visibility,
             AppMessage::SetSelectedCategory(selected_category) => app_context.selected_category = selected_category,
+            AppMessage::UpdateFavorite((id, favorite)) => {
+                if favorite {
+                    app_context.favorites.push(id);
+                } else {
+                    app_context.favorites.retain(|x| *x != id);
+                }
+            },
+            AppMessage::UpdateSearchTerm(search_term) => app_context.search_term = search_term,
         }
 
         true
@@ -182,7 +201,6 @@ impl Component for App {
                     >
                         <Header />
                         <Content />
-                        <Footer />
                     </div>
                 </BrowserRouter>
             </ContextProvider<Rc<AppContext>>>
@@ -202,6 +220,8 @@ pub enum AppRoute {
     Comparison,
     #[at("/create")]
     Create,
+    #[at("/favorites")]
+    Favorites,
     #[not_found]
     #[at("/404")]
     NotFound,

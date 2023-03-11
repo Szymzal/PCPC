@@ -1,5 +1,3 @@
-use yew::prelude::*;
-
 mod content;
 pub mod app;
 mod header;
@@ -13,12 +11,4 @@ mod filter;
 mod icons;
 mod rating;
 mod side_panel;
-
-#[function_component]
-fn Footer() -> Html {
-    html! {
-        <div class={classes!("footer")}>
-
-        </div>
-    }
-}
+mod favorites;
