@@ -68,11 +68,7 @@ impl Component for SearchBar {
                     />
                 </div>
                 <div class={classes!("search-bar")}>
-                    <img 
-                        src="https://cdn-icons-png.flaticon.com/512/622/622669.png" 
-                        alt="Search icon" 
-                    />
-                    <input type="text" value={self.context.search_term.to_owned()} oninput={input} />
+                    <input type="text" value={self.context.search_term.to_owned()} oninput={input} placeholder={"Search"} />
                 </div>
             </div>
         }

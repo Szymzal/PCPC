@@ -121,7 +121,7 @@ impl Component for Comparison {
                         }
                         <table class={classes!("comparison-table")}>
                             <tr>
-                                <th>
+                                <th class={classes!("buttons")}>
                                     <div 
                                         onclick={tabs_callback}
                                         class={classes!("comparison-button")}>

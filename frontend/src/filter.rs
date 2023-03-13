@@ -116,7 +116,7 @@ fn categories() -> Vec<String> {
     return PartsCategory::get_all_variats();
 }
 
-fn ordering(category: PartsCategory) -> HashMap<String, bool> {
+pub fn ordering(category: PartsCategory) -> HashMap<String, bool> {
     let part_template = Part {
         category_properties: category,
         ..Default::default()

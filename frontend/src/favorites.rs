@@ -84,8 +84,13 @@ impl Component for Favorites {
             let html: Vec<Html> = parts.iter().map(|x| x.to_html(None, callback_selected.clone(), callback_favorite.clone())).collect();
 
             return html! {
-                <div class={classes!("parts")}>
-                    {html}
+                <div class={classes!("favorites")}>
+                    <div class={classes!("title")}>
+                        <h2>{"Favorites"}</h2>
+                    </div>
+                    <div class={classes!("parts")}>
+                        {html}
+                    </div>
                 </div>
             };
         }

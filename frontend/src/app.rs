@@ -6,7 +6,7 @@ use web_sys::HtmlDivElement;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::{content::{ContentPage, Content}, header::Header, parts::Part, connection::post_from_db};
+use crate::{content::{ContentPage, Content}, header::Header, parts::Part, connection::post_from_db, filter::ordering};
 
 #[derive(Clone, PartialEq)]
 pub struct AppContext {
@@ -105,14 +105,20 @@ impl Component for App {
         let favorites_callback = ctx.link().callback(move |(id, favorite)| AppMessage::UpdateFavorite((id, favorite)));
         let search_term_callback = ctx.link().callback(move |search_term| AppMessage::UpdateSearchTerm(search_term));
 
+        let mut properties_order: HashMap<String, bool> = HashMap::new();
+        for category in PartsCategory::get_all_variats() {
+            let map = ordering(PartsCategory::from_string(&category));
+            properties_order.extend(map);
+        }
+
         let context = Rc::new(AppContext {
             content_page: ContentPage::Parts,
             content_page_callback,
             selected_parts: Vec::new(),
             selected_parts_callback,
-            properties_order: HashMap::new(),
+            properties_order,
             properties_order_callback,
-            selected_category: PartsCategory::Basic.to_string(),
+            selected_category: PartsCategory::default().to_string(),
             selected_category_callback,
             filter_visibility: true,
             filter_visibility_callback,

@@ -29,7 +29,7 @@ body {
     background-color: red;
     height: 5vh;
     display: grid;
-    grid-template-columns: repeat(3, auto) 1fr repeat(2, auto);
+    grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
     grid-column-gap: 10px;
     justify-items: flex-start;
     align-items: center;
@@ -39,8 +39,8 @@ body {
     margin-left: 10px;
 }
 
-.link:nth-child(4) {
-    grid-column-start: 5;
+.link:nth-child(3) {
+    grid-column-start: 4;
 }
 
 .link:last-child {
@@ -236,7 +236,6 @@ body {
     margin: 5px;
     margin-left: 0px;
     background-color: red;
-    border-radius: 5px;
     display: flex;
     align-items: center;
 }
@@ -248,9 +247,18 @@ body {
 }
 
 .search-bar input {
+    width: 100%;
+    height: 100%;
     flex-grow: 1;
-    margin-right: 10px;
-    margin-left: 5px;
+    background-image: url("https://cdn-icons-png.flaticon.com/512/622/622669.png");
+    background-position: 3px 3px;
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    background-color: white;
+    padding: 5px 10px 5px 27px;
 }
 
 .side-panel {
@@ -271,6 +279,7 @@ body {
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    margin-right: -10px;
 }
 
 .ordering-property {
@@ -297,7 +306,7 @@ body {
 .resizer-right {
     width: 10px;
     min-height: 100%;
-    background: red;
+    background: transparent;
     cursor: e-resize;
 }
 
@@ -353,4 +362,81 @@ body {
 
 .tab h2 {
     margin-left: 0px;
+}
+
+.favorites .title {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Assistant', Arial;
+    font-weight: 700;
+}
+
+.property-input p {
+    margin-bottom: 3px;
+    font-family: 'Assistant', Arial;
+    font-weight: 500;
+}
+
+.create-part {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+}
+
+.create-part label {
+    margin-left: 15px;
+    font-family: 'Assistant', Arial;
+    font-weight: 500;
+}
+
+.part-category-selection {
+    margin-top: 10px;
+    margin-left: 15px;
+}
+
+.properties {
+    width: 98%;
+    margin-left: 15px;
+    margin-right: 15px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 200px);
+    overflow-y: auto;
+}
+
+.create-part-button {
+    cursor: pointer;
+    margin: 15px;
+    border-radius: 5px;
+    background-color: red;
+}
+
+.create-part-button h2 {
+    margin: 5px;
+    display: inline-block;
+    font-family: 'Open Sans', Arial;
+}
+
+.buttons {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.comparison-button h5 {
+    margin: 0px;
+}
+
+.comparison-button {
+    cursor: pointer;
+    margin: 5px;
+    background-color: wheat;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.comparison-empty {
+    font-family: 'Assistant', Arial;
+    font-weight: 700;
 }

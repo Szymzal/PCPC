@@ -16,7 +16,6 @@ impl Component for Header {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class={classes!("header")}>
-                <img src="" alt="logo" class={classes!("logo")} />
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Parts}>{ "Parts" }</Link<AppRoute>>
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Comparison}>{ "Compare" }</Link<AppRoute>>
                 <Link<AppRoute> classes={classes!("link")} to={AppRoute::Favorites}>{ "Favorites" }</Link<AppRoute>>

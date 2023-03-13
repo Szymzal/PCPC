@@ -7,7 +7,7 @@ use surrealdb::sql::{Value, json};
 use traits::PartProperties;
 use types::StringenFloat;
 
-mod types;
+pub mod types;
 pub mod traits;
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
@@ -32,6 +32,8 @@ pub struct DBPartProps {
     pub rating: StringenFloat,
     pub category: PartsCategory,
 }
+
+impl PartProperties for DBPartProps {}
 
 #[cfg(feature = "surreal")]
 impl Into<Value> for DBPartProps {

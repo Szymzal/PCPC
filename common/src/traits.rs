@@ -9,7 +9,7 @@ pub trait PartProperties: Serialize {
         chars.next();
         chars.next_back();
         let field_values_array = format!("[{}]", chars.as_str());
-        let field_values_array = field_values_array.replace(":", ",");
+        let field_values_array = field_values_array.replace("\":", "\",");
         let array: Vec<Value> = serde_json::from_str(&field_values_array)?;
         let array: Vec<String> = array.iter().map(|x| x.to_string()).collect();
         let mut map: HashMap<String, String> = HashMap::new();
