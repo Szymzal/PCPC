@@ -79,10 +79,40 @@ impl Component for Comparison {
         let mut comparison_parts = comparison_context.parts.clone();
         if !comparison_parts.is_empty() {
             comparison_parts.retain(|x| x.category_properties.to_string() == self.context.selected_category);
+
+            let config;
+            if let Some(stored_config) = &self.config {
+                config = stored_config.clone();
+            } else {
+                // Placeholder
+                config = SidePanelConfig::Tabs;
+            }
+
+            let side_panel = self.config.is_some();
+
+
+            if comparison_parts.is_empty() {
+                return html! {
+                    
+                    <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
+                        <div class={classes!("comparison")}>
+                            if side_panel {
+                                <SidePanel config={config} />
+                            }
+                            <div class={classes!("comparison-empty")}>
+                                <h2>{"No parts in selected category!"}</h2> 
+                            </div>
+                        </div>
+                    </ContextProvider<Rc<ComparisonContext>>>
+                }
+            }
+
             for part in &mut *comparison_parts {
                 part_names.push(html! {
                     <th>
-                        {&part.name}
+                        <div>
+                            <h2>{&part.name}</h2>
+                        </div>
                     </th>
                 });
             }
@@ -103,40 +133,32 @@ impl Component for Comparison {
             let tabs_callback = ctx.link().callback(|_| ComparisonMessage::ChangeConfig(SidePanelConfig::Tabs));
             let settings_callback = ctx.link().callback(|_| ComparisonMessage::ChangeConfig(SidePanelConfig::Settings));
 
-            let config;
-            if let Some(stored_config) = &self.config {
-                config = stored_config.clone();
-            } else {
-                // Placeholder
-                config = SidePanelConfig::Tabs;
-            }
-
-            let side_panel = self.config.is_some();
-
             return html! {
                 <ContextProvider<Rc<ComparisonContext>> context={comparison_context}>
                     <div class={classes!("comparison")}>
                         if side_panel {
                             <SidePanel config={config} />
                         }
-                        <table class={classes!("comparison-table")}>
-                            <tr>
-                                <th class={classes!("buttons")}>
-                                    <div 
-                                        onclick={tabs_callback}
-                                        class={classes!("comparison-button")}>
-                                        <h5>{"Tabs"}</h5>
-                                    </div>
-                                    <div 
-                                        onclick={settings_callback}
-                                        class={classes!("comparison-button")}>
-                                        <h5>{"Settings"}</h5>
-                                    </div>
-                                </th>
-                                {part_names}
-                            </tr>
-                            {properties}
-                        </table>
+                        <div class={classes!("comparison-table-container")}>
+                            <table class={classes!("comparison-table")}>
+                                <tr>
+                                    <th class={classes!("buttons")}>
+                                        <div 
+                                            onclick={tabs_callback}
+                                            class={classes!("comparison-button")}>
+                                            <h5>{"Tabs"}</h5>
+                                        </div>
+                                        <div 
+                                            onclick={settings_callback}
+                                            class={classes!("comparison-button")}>
+                                            <h5>{"Settings"}</h5>
+                                        </div>
+                                    </th>
+                                    {part_names}
+                                </tr>
+                                {properties}
+                            </table>
+                        </div>
                     </div>
                 </ContextProvider<Rc<ComparisonContext>>>
             };
@@ -154,7 +176,9 @@ fn get_property_from_parts(parts: &Vec<Part>, property: String) -> Html {
     let mut part_properties: Vec<Html> = Vec::new();
     part_properties.push(html! {
         <th>
-            {&property}
+            <div>
+                <h2>{&property}</h2>
+            </div>
         </th>
     });
 
@@ -185,14 +209,18 @@ fn get_property_from_parts(parts: &Vec<Part>, property: String) -> Html {
                     true => {
                         html! {
                             <td class={classes!("different")}>
-                                {&first_property}
+                                <div>
+                                    {&first_property}
+                                </div>
                             </td>
                         }
                     },
                     false => {
                         html! {
                             <td>
-                                {&first_property}
+                                <div>
+                                    {&first_property}
+                                </div>
                             </td>
                         }
                     },

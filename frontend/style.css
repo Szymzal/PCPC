@@ -1,7 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@500;700&family=Open+Sans:wght@600&family=Work+Sans:wght@500&display=swap');
 
+:root {
+    --primary-color: #262626; /* black */
+    --secondary-color: #FF3352; /* red */
+    --third-color: #255C99; /* blue */
+    --forth-color: #7EA3CC; /* light blue */
+    --fifth-color: #CCAD8F; /* wheat */
+    --black-color: black;
+
+    --text-color: black;
+    --second-text-color: white;
+
+    --content-background-color: var(--primary-color);
+    --header-background-color: var(--fifth-color);
+
+    --part-background-color: var(--third-color);
+    --part-image-background-color: var(--forth-color);
+    --part-buttons-background-color: var(--part-image-background-color);
+
+    --part-rating-filled-background-color: #fc0;
+    --part-rating-default-background-color: #fff;
+
+    --filter-icon-background-color: var(--fifth-color);
+    --search-bar-background-color: var(--filter-icon-background-color);
+    --search-bar-border-color: var(--search-bar-background-color);
+
+    --side-panel-background-color: var(--third-color);
+    --tab-background-color: transparent;
+    --tab-selected-background-color: var(--forth-color);
+
+    --comparison-table-border-color: var(--third-color);
+    --comparison-table-different-property-background-color: var(--forth-color);
+    --comparison-table-button-background-color: var(--fifth-color);
+
+    --create-part-button-background-color: var(--forth-color);
+
+    --create-part-button-text-color: var(--text-color);
+    --create-part-property-input-text-color: var(--second-text-color);
+    --create-part-select-category-text-color: var(--create-part-property-input-text-color);
+    --empty-text-color: var(--second-text-color);
+    --comparison-button-text-color: var(--text-color);
+    --side-panel-header-text-color: var(--text-color);
+    --favorites-title-text-color: var(--second-text-color);
+    --comparison-table-text-color: var(--second-text-color);
+    --comparison-table-different-text-color: var(--text-color);
+    --side-panel-ordering-property-text-color: var(--text-color);
+    --part-specification-value-text-color: var(--text-color);
+    --part-specification-header-text-color: var(--text-color);
+    --part-header-name-text-color: var(--text-color);
+    --header-link-text-color: var(--text-color);
+}
+
 body {
-    background-color: black;
     margin: 0px;
 }
 
@@ -26,7 +76,7 @@ body {
 }
 
 .header {
-    background-color: red;
+    background-color: var(--header-background-color);
     height: 5vh;
     display: grid;
     grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
@@ -39,6 +89,12 @@ body {
     margin-left: 10px;
 }
 
+.comparison-table-container {
+    overflow: auto;
+    flex-grow: 1;
+}
+
+
 .link:nth-child(3) {
     grid-column-start: 4;
 }
@@ -49,32 +105,28 @@ body {
 
 .link {
     text-decoration: none;
-    color: black;
+    color: var(--header-link-text-color);
     padding: 8px;
     font-family: 'Work Sans', Arial;
 }
 
 .content {
-    background-color: green;
+    background-color: var(--content-background-color);
     height: 95vh;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
 }
 
-.footer {
-    background-color: yellow;
-    height: 5vh;
-}
-
 .comparison,
 .comparison-empty {
     display: flex;
+    width: 100%;
     height: 100%;
 }
 
 .part {
-    background-color: orange;
+    background-color: var(--part-background-color);
     width: 300px;
     margin: 20px 10px;
     border-radius: 10px;
@@ -87,7 +139,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: white;
+    background-color: var(--part-image-background-color);
     border-radius: 10px 10px 0px 0px;
 }
 
@@ -123,7 +175,7 @@ body {
     justify-content: center;
     flex-grow: 2;
     border-radius: 10px;
-    background-color: white;
+    background-color: var(--part-buttons-background-color);
     margin-top: 10px;
     margin-left: 5px;
     margin-bottom: 5px;
@@ -152,7 +204,7 @@ body {
 
 .part_name {
     margin-left: 10px;
-    color: black;
+    color: var(--part-header-name-text-color);
 }
 
 .part_specification {
@@ -167,6 +219,7 @@ body {
     font-size: 17px;
     font-family: 'Assistant', Arial;
     font-weight: 700;
+    color: var(--part-specification-header-text-color);
 }
 
 .part_specification h5 {
@@ -174,6 +227,7 @@ body {
     font-size: 17px;
     font-family: 'Assistant', Arial;
     font-weight: 500;
+    color: var(--part-specification-value-text-color);
 }
 
 .parts {
@@ -196,7 +250,7 @@ body {
     display: inline-block;
     line-height: 1;
     font-size: 25px;
-    background: linear-gradient(90deg, #fc0 var(--percent), #fff var(--percent));
+    background: linear-gradient(90deg, var(--part-rating-filled-background-color) var(--percent), var(--part-rating-default-background-color) var(--percent));
     font-family: Times;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -216,7 +270,7 @@ body {
 .filter-icon {
     width: 30px;
     height: 30px;
-    background-color: red;
+    background-color: var(--filter-icon-background-color);
     margin: 5px;
     border-radius: 5px;
     display: flex;
@@ -235,7 +289,6 @@ body {
     height: 30px;
     margin: 5px;
     margin-left: 0px;
-    background-color: red;
     display: flex;
     align-items: center;
 }
@@ -255,15 +308,15 @@ body {
     background-size: 20px 20px;
     background-repeat: no-repeat;
     box-sizing: border-box;
-    border: 2px solid #ccc;
+    border: 2px solid var(--search-bar-border-color);
     border-radius: 5px;
-    background-color: white;
+    background-color: var(--search-bar-background-color);
     padding: 5px 10px 5px 27px;
 }
 
 .side-panel {
     min-width: 150px;
-    background-color: blue;
+    background-color: var(--side-panel-background-color);
     display: flex;
     justify-content: flex-end;
 }
@@ -296,6 +349,7 @@ body {
     white-space: nowrap;
     font-family: 'Assistant', Arial;
     font-weight: 700;
+    color: var(--side-panel-ordering-property-text-color);
 }
 
 .ordering-property input {
@@ -317,29 +371,62 @@ body {
     flex-direction: column;
 }
 
+.tabs:first-child {
+    margin-top: 5px;
+}
+
 .tab {
-    width: 80%;
+    width: 100%;
     display: flex;
-    background-color: grey;
-    border-radius: 20px;
     cursor: pointer;
+    border-radius: 5px;
+    margin-left: 10px;
+    justify-content: flex-start;
+    background-color: var(--tab-background-color);
+}
+
+.tab h2 {
     margin: 5px;
-    justify-content: center;
 }
 
 .selected {
-    background-color: green;
+    background-color: var(--tab-selected-background-color);
 }
 
 .comparison-table {
     border-collapse: collapse;
     margin: 15px;
+    table-layout: fixed;
+}
+
+.comparison-table tr th {
+    font-weight: 700;
+}
+
+.comparison-table tr td {
+    font-weight: 500;
+}
+
+.comparison-table tr * div h2 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.comparison-table tr * div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 100px;
+    max-height: 100px;
+    min-height: 35px;
 }
 
 .comparison-table tr th,
 .comparison-table tr td {
-    border: 2px solid black;
+    border: 2px solid var(--comparison-table-border-color);
     padding: 5px;
+    color: var(--comparison-table-text-color);
+    font-family: 'Assistant', Arial;
 }
 
 .comparison-table > tr:first-child > th:first-child {
@@ -351,17 +438,15 @@ body {
     align-items: center;
 }
 
-.different {
-    background-color: blue;
+.comparison .comparison-table tr .different {
+    background-color: var(--comparison-table-different-property-background-color);
+    color: var(--comparison-table-different-text-color);
 }
 
 .side-panel h2 {
     font-family: 'Open Sans', Arial;
     margin-left: 10px;
-}
-
-.tab h2 {
-    margin-left: 0px;
+    color: var(--side-panel-header-text-color);
 }
 
 .favorites .title {
@@ -371,12 +456,14 @@ body {
     align-items: center;
     font-family: 'Assistant', Arial;
     font-weight: 700;
+    color: var(--favorites-title-text-color);
 }
 
 .property-input p {
     margin-bottom: 3px;
     font-family: 'Assistant', Arial;
     font-weight: 500;
+    color: var(--create-part-property-input-text-color);
 }
 
 .create-part {
@@ -389,6 +476,7 @@ body {
     margin-left: 15px;
     font-family: 'Assistant', Arial;
     font-weight: 500;
+    color: var(--create-part-select-category-text-color);
 }
 
 .part-category-selection {
@@ -409,13 +497,14 @@ body {
     cursor: pointer;
     margin: 15px;
     border-radius: 5px;
-    background-color: red;
+    background-color: var(--create-part-button-background-color);
 }
 
 .create-part-button h2 {
     margin: 5px;
     display: inline-block;
     font-family: 'Open Sans', Arial;
+    color: var(--create-part-button-text-color);
 }
 
 .buttons {
@@ -424,14 +513,20 @@ body {
     align-items: flex-start;
 }
 
+.comparison-table-container .comparison-table tr th .comparison-button {
+    min-width: 20px;
+    min-height: 20px;
+}
+
 .comparison-button h5 {
     margin: 0px;
+    color: var(--comparison-button-text-color);
 }
 
 .comparison-button {
     cursor: pointer;
     margin: 5px;
-    background-color: wheat;
+    background-color: var(--comparison-table-button-background-color);
     padding: 5px;
     border-radius: 5px;
 }
@@ -439,4 +534,5 @@ body {
 .comparison-empty {
     font-family: 'Assistant', Arial;
     font-weight: 700;
+    color: var(--empty-text-color);
 }
