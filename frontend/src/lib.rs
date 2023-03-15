@@ -12,3 +12,4 @@ mod icons;
 mod rating;
 mod side_panel;
 mod favorites;
+mod auth;

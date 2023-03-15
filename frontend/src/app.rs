@@ -1,6 +1,8 @@
 use std::{rc::Rc, collections::HashMap};
 
 use common::{GetPartProps, DBPart, PartsCategory};
+use log::info;
+use serde_json::Value;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlDivElement;
 use yew::prelude::*;
@@ -24,6 +26,10 @@ pub struct AppContext {
     pub favorites_callback: Callback<(String, bool)>,
     pub search_term: String,
     pub search_term_callback: Callback<String>,
+    // For auth page
+    pub back_url: Option<AppRoute>,
+    pub retransmit: Option<Value>,
+    pub auth_callback: Callback<Option<(AppRoute, Value)>>,
 }
 
 pub async fn get_part_with_callback(context: Rc<AppContext>, id: String, callback: Callback<Part>) {
@@ -90,6 +96,7 @@ pub enum AppMessage {
     SetFilterVisibility(bool),
     UpdateFavorite((String, bool)),
     UpdateSearchTerm(String),
+    UpdateAuthProps(Option<(AppRoute, Value)>),
 }
 
 impl Component for App {
@@ -104,6 +111,7 @@ impl Component for App {
         let selected_category_callback = ctx.link().callback(move |selected_category| AppMessage::SetSelectedCategory(selected_category));
         let favorites_callback = ctx.link().callback(move |(id, favorite)| AppMessage::UpdateFavorite((id, favorite)));
         let search_term_callback = ctx.link().callback(move |search_term| AppMessage::UpdateSearchTerm(search_term));
+        let auth_callback = ctx.link().callback(move |value| AppMessage::UpdateAuthProps(value));
 
         let mut properties_order: HashMap<String, bool> = HashMap::new();
         for category in PartsCategory::get_all_variats() {
@@ -126,6 +134,9 @@ impl Component for App {
             favorites_callback,
             search_term: "".to_string(),
             search_term_callback,
+            back_url: None,
+            retransmit: None,
+            auth_callback,
         });
 
         Self { 
@@ -184,6 +195,16 @@ impl Component for App {
                 }
             },
             AppMessage::UpdateSearchTerm(search_term) => app_context.search_term = search_term,
+            AppMessage::UpdateAuthProps(props) => {
+                if let Some((back_url, json)) = props {
+                    app_context.back_url = Some(back_url);
+                    app_context.retransmit = Some(json);
+                    return true;
+                }
+
+                app_context.back_url = None;
+                app_context.retransmit = None;
+            },
         }
 
         true
@@ -228,6 +249,8 @@ pub enum AppRoute {
     Create,
     #[at("/favorites")]
     Favorites,
+    #[at("/auth")]
+    Auth,
     #[not_found]
     #[at("/404")]
     NotFound,

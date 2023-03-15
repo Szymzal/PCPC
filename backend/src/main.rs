@@ -1,18 +1,22 @@
 use std::{sync::Arc, collections::BTreeMap};
 
 use actix_cors::Cors;
-use actix_web::{get, web::{self, Data}, App, HttpServer, middleware, HttpResponse, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, body::MessageBody, Error, http::header, post};
+use actix_identity::{IdentityMiddleware, Identity};
+use actix_session::{storage::CookieSessionStore, SessionMiddleware, config::{BrowserSession, PersistentSession}};
+use actix_web::{web::{self, Data}, App, HttpServer, middleware, HttpResponse, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, body::MessageBody, Error, http::header::{self, AUTHORIZATION, REFERER}, cookie::{Key, time::Duration}, HttpRequest, HttpMessage};
+use actix_web_httpauth::{middleware::HttpAuthentication, extractors::{basic::BasicAuth, AuthenticationError}, headers::www_authenticate::{WwwAuthenticate, basic::Basic}};
 use anyhow::{bail, anyhow};
 use common::{StatusResponse, DBPartProps, GetPartProps, DBPart, PartsCategory, CPUProperties};
 use surrealdb::{Datastore, Session, sql::Value};
 use tokio::sync::Mutex;
+
+const TEN_MINUTES: u64 = 10 * 60;
 
 pub struct DB {
     datastore: Datastore,
     session: Session,
 }
 
-#[get("/api")]
 async fn status() -> HttpResponse {
     HttpResponse::Ok().json(
         StatusResponse {
@@ -21,7 +25,6 @@ async fn status() -> HttpResponse {
     )
 }
 
-#[post("/api/part")]
 async fn part(props: web::Json<GetPartProps>, db: Data<Mutex<DB>>) -> HttpResponse {
     let props = props.into_inner();
 
@@ -112,14 +115,42 @@ async fn create_part_raw(part_props: &DBPartProps, db: &Data<Mutex<DB>>) -> anyh
     Ok(())
 }
 
-#[post("/api/part/create")]
-async fn create_part(part_props: web::Json<DBPartProps>, db: Data<Mutex<DB>>) -> HttpResponse {
-    let result = create_part_raw(&part_props.0, &db).await;
+async fn logout(id: Identity) -> HttpResponse {
+    id.logout();
 
-    match result {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+    HttpResponse::Ok().finish()
+}
+
+async fn create_part(id: Option<Identity>, credentials: Option<BasicAuth>, request: HttpRequest, part_props: web::Json<DBPartProps>, db: Data<Mutex<DB>>) -> HttpResponse {
+    let mut logged = false;
+    if id.is_none() {
+        if let Some(credentials) = credentials {
+            let user = credentials.user_id();
+            let password = credentials.password();
+            if let Some(password) = password {
+                // TODO: replace with DB lookup
+                if user == "Admin" && password == "admin" {
+                    Identity::login(&request.extensions(), user.to_string()).unwrap();
+                    logged = true;
+                }
+            }
+        }
+    } else {
+        logged = true;
     }
+
+    if logged {
+        let result = create_part_raw(&part_props.0, &db).await;
+
+        return match result {
+            Ok(_) => HttpResponse::Ok().finish(),
+            Err(_) => HttpResponse::InternalServerError().finish(),
+        };
+    }
+
+    HttpResponse::Unauthorized()
+        .insert_header(WwwAuthenticate::<Basic>(Basic::with_realm("Part creation")))
+        .finish()
 }
 
 fn create_app(
@@ -133,12 +164,27 @@ fn create_app(
         Error = Error,
     >,
 > {
+    let secret_key = Key::generate();
+
     App::new()
         .wrap(middleware::Logger::default())
         .wrap(
+            IdentityMiddleware::builder()
+                .visit_deadline(Some(std::time::Duration::from_secs(TEN_MINUTES)))
+                .build(),
+        )
+        .wrap(
+            SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
+                .cookie_name("pcpc-auth".to_owned())
+                .cookie_secure(false) // We are using HTTP
+                .session_lifecycle(BrowserSession::default().state_ttl(Duration::hours(1)))
+                .build(),
+        )
+        .wrap(
             Cors::default()
-                .allowed_origin("http://127.0.0.1:8080")
-                .allowed_methods(vec!["GET", "POST"])
+                //.allowed_origin("http://127.0.0.1:8080")
+                .allow_any_origin()
+                .allowed_methods(vec!["GET", "POST", "OPTIONS"])
                 .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                 .allowed_header(header::CONTENT_TYPE)
                 .supports_credentials()
@@ -146,9 +192,28 @@ fn create_app(
         )
         .app_data(web::JsonConfig::default().limit(4096))
         .app_data(Data::from(db))
-        .service(status)
-        .service(create_part)
-        .service(part)
+        .service(
+            web::scope("/api")
+                .service(
+                    web::resource("")
+                        .route(web::get().to(status)),
+                )
+                .service(
+                    web::scope("/part")
+                        .service(
+                            web::resource("")
+                                .route(web::post().to(part)),
+                        )
+                        .service(
+                            web::resource("/create")
+                                .route(web::post().to(create_part)),
+                        )
+                )
+                .service(
+                    web::resource("/logout")
+                        .route(web::post().to(logout)),
+                )
+        )
 }
 
 async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
@@ -246,6 +311,7 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::init();
     let db = create_db_connection().await?;
     put_temp_data_to_db(db.clone()).await?;
 
@@ -350,7 +416,10 @@ mod tests {
         let app = 
             test::init_service(
                 App::new()
-                    .service(status)
+                    .service(
+                        web::resource("/api")
+                            .route(web::get().to(status)),
+                    )
             )
             .await;
 

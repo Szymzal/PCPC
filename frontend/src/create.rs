@@ -3,25 +3,28 @@ use std::{collections::HashMap, rc::Rc};
 use anyhow::bail;
 use common::{DBPartProps, traits::PartProperties, PartsCategory};
 use gloo_net::http::Request;
-use log::info;
+use serde_json::{Value, Map};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use yew::{Component, html, classes, Callback, Properties, Html, ContextHandle};
-use web_sys::{Event, InputEvent, HtmlInputElement, HtmlSelectElement};
+use web_sys::{Event, InputEvent, HtmlInputElement, HtmlSelectElement, RequestCredentials};
+use yew_router::prelude::Redirect;
 
-use crate::{parts::Part, app::AppContext};
+use crate::app::{AppContext, AppRoute};
 
 pub struct CreatePart {
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
     part: HashMap<String, String>,
     selected_category: PartsCategory,
+    auth_required: bool,
 }
 
 pub enum CreatePartMessage {
     ContextChanged(Rc<AppContext>),
     Update(String, String),
     SetSelectedCategory(PartsCategory),
+    AuthRequired,
 }
 
 impl Component for CreatePart {
@@ -34,14 +37,16 @@ impl Component for CreatePart {
             .context::<Rc<AppContext>>(ctx.link().callback(CreatePartMessage::ContextChanged))
             .unwrap();
 
-        let default_part = Part::default();
-        let map = default_part.get_properties_as_map().unwrap();
+        let default_part = DBPartProps::default();
+        let mut map = part_props_get_properties_as_map(default_part).unwrap();
+        map.remove("Category");
 
         Self {
             context,
             _listener,
             part: map,
             selected_category: PartsCategory::default(),
+            auth_required: false,
         }
     }
 
@@ -73,6 +78,7 @@ impl Component for CreatePart {
 
                 self.selected_category = category 
             },
+            CreatePartMessage::AuthRequired => self.auth_required = true,
         }
 
         true
@@ -80,19 +86,29 @@ impl Component for CreatePart {
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let onclick = {
+            let context = self.context.clone();
+            let auth_callback = context.auth_callback.clone();
+            let auth_required_callback = ctx.link().callback(move |()| CreatePartMessage::AuthRequired);
             let map = self.part.clone();
             let selected_category = self.selected_category.clone();
 
             Callback::from(move |_| {
                 let json = get_json(&map, &selected_category).unwrap();
+                let auth_callback = auth_callback.clone();
+                let auth_required_callback = auth_required_callback.clone();
                 spawn_local(async move {
                     let json = json.to_owned();
-                    Request::post("http://127.0.0.1:8088/api/part/create")
+                    let request = Request::post("http://127.0.0.1:8088/api/part/create")
                         .json(&json)
                         .unwrap()
                         .send()
                         .await
                         .unwrap();
+                    if request.status() == 401 {
+                        let value = serde_json::to_value(json).unwrap();
+                        auth_callback.emit(Some((AppRoute::Create, value)));
+                        auth_required_callback.emit(());
+                    }
                 });
             }
         )};
@@ -158,6 +174,9 @@ impl Component for CreatePart {
                 <div class={classes!("create-part-button")} onclick={onclick}>
                     <h2>{"Submit"}</h2>
                 </div>
+                if self.auth_required {
+                    <Redirect<AppRoute> to={AppRoute::Auth} />
+                }
             </div>
         }
     }
@@ -227,12 +246,32 @@ fn get_json(part: &HashMap<String, String>, selected_category: &PartsCategory) -
         stored_map.insert(key, value.to_string());
     }
 
-    match (part_value, category_value) {
-        (serde_json::Value::Object(mut part_map), serde_json::Value::Object(mut category_map) ) => {
+
+    match part_value {
+        serde_json::Value::Object(mut part_map) => {
+            let mut category_map: Map<String, Value>;
+            match category_value {
+                serde_json::Value::String(_) => {
+                    category_map = Map::default();
+                }
+                serde_json::Value::Object(object) => {
+                    category_map = object;
+                },
+                _ => bail!("No way"),
+            }
+
             let first_key: Vec<&String> = category_map.keys().collect();
-            match category_map.get(*first_key.first().unwrap()).unwrap() {
-                serde_json::Value::Object(object) => category_map = object.clone(),
-                _ => bail!("Unexpected error on category"),
+            if !first_key.is_empty() {
+                let first = first_key.first();
+                if let Some(first) = first {
+                    let value = category_map.get(*first);
+                    if let Some(value) = value {
+                        match value {
+                            serde_json::Value::Object(object) => category_map = object.clone(),
+                            _ => bail!("Unexpected error on category"),
+                        }
+                    }
+                }
             }
 
             part_map.remove("category");
@@ -301,11 +340,17 @@ fn get_json(part: &HashMap<String, String>, selected_category: &PartsCategory) -
 
                 if index == 0 {
                     let string_category = selected_category.to_string();
-                    result.push_str(&format!(",\"category\":{{\"{}\":{{", string_category));
+                    if selected_category == PartsCategory::Basic {
+                        result.push_str(",\"category\":\"Basic\"");
+                    } else {
+                        result.push_str(&format!(",\"category\":{{\"{}\":{{", string_category));
+                    }
                 }
 
                 if index == 1 {
-                    result.push_str("}}");
+                    if selected_category != PartsCategory::Basic {
+                        result.push_str("}}");
+                    }
                 }
 
                 index += 1;
