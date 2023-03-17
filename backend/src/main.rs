@@ -74,7 +74,13 @@ async fn part(props: web::Json<GetPartProps>, db: Data<Mutex<DB>>) -> HttpRespon
 }
 
 async fn create_db_connection() -> anyhow::Result<Arc<Mutex<DB>>> {
-    let datastore = Datastore::new("memory").await?;
+    let mut database = option_env!("PCPC_DATABASE_URL");
+    if let None = database {
+        database = Some("memory");
+    }
+
+    let database = database.unwrap();
+    let datastore = Datastore::new(database).await?;
     let session = Session::for_db("my_ns", "my_db");
 
     Ok(Arc::new(Mutex::new(DB {
