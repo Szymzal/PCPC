@@ -86,29 +86,20 @@ impl Component for CreatePart {
 
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let onclick = {
-            let context = self.context.clone();
-            let auth_callback = context.auth_callback.clone();
-            let auth_required_callback = ctx.link().callback(move |()| CreatePartMessage::AuthRequired);
             let map = self.part.clone();
             let selected_category = self.selected_category.clone();
 
             Callback::from(move |_| {
                 let json = get_json(&map, &selected_category).unwrap();
-                let auth_callback = auth_callback.clone();
-                let auth_required_callback = auth_required_callback.clone();
                 spawn_local(async move {
                     let json = json.to_owned();
-                    let request = Request::post("http://127.0.0.1:8088/api/part/create")
+                    Request::post("http://127.0.0.1:8088/api/part/create")
+                        .credentials(RequestCredentials::Include)
                         .json(&json)
                         .unwrap()
                         .send()
                         .await
                         .unwrap();
-                    if request.status() == 401 {
-                        let value = serde_json::to_value(json).unwrap();
-                        auth_callback.emit(Some((AppRoute::Create, value)));
-                        auth_required_callback.emit(());
-                    }
                 });
             }
         )};
