@@ -1,16 +1,12 @@
 use std::{sync::Arc, collections::BTreeMap};
 
 use actix_cors::Cors;
-use actix_identity::{IdentityMiddleware, Identity};
-use actix_session::{storage::CookieSessionStore, SessionMiddleware, config::{BrowserSession, PersistentSession}};
-use actix_web::{web::{self, Data}, App, HttpServer, middleware, HttpResponse, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, body::MessageBody, Error, http::{header::{self, AUTHORIZATION, REFERER}, StatusCode}, cookie::{Key, time::Duration, SameSite}, HttpRequest, HttpMessage, Responder, error::ErrorUnauthorized};
-use actix_web_httpauth::{middleware::HttpAuthentication, extractors::{basic::BasicAuth, AuthenticationError}, headers::{www_authenticate::{WwwAuthenticate, basic::Basic}, self}};
-use anyhow::{bail, anyhow};
+use actix_web::{web::{self, Data}, App, HttpServer, middleware, HttpResponse, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, body::MessageBody, Error, Responder, http::header};
+use actix_web_httpauth::{extractors::basic::BasicAuth, headers::www_authenticate::{WwwAuthenticate, basic::Basic}};
+use anyhow::{anyhow, bail};
 use common::{StatusResponse, DBPartProps, GetPartProps, DBPart, PartsCategory, CPUProperties};
 use surrealdb::{Datastore, Session, sql::Value};
 use tokio::sync::Mutex;
-
-const TEN_MINUTES: u64 = 10 * 60;
 
 pub struct DB {
     datastore: Datastore,
@@ -72,8 +68,6 @@ async fn part(props: web::Json<GetPartProps>, db: Data<Mutex<DB>>) -> HttpRespon
 
             return HttpResponse::Ok().json(parts);
         }
-
-        return HttpResponse::InternalServerError().finish();
     }
 
     HttpResponse::InternalServerError().finish()
@@ -96,14 +90,8 @@ async fn create_part_raw(part_props: &DBPartProps, db: &Data<Mutex<DB>>) -> anyh
     ].into();
 
     let db_locked = db.lock().await;
-    let response = db_locked.datastore.execute(sql, &db_locked.session, Some(vars), false).await;
+    let response = db_locked.datastore.execute(sql, &db_locked.session, Some(vars), false).await?;
     drop(db_locked);
-
-    if let Err(error) = response { 
-        bail!(error);
-    }
-
-    let response = response.unwrap();
 
     if let Some(first) = response.first() {
         match &first.result {
@@ -115,26 +103,65 @@ async fn create_part_raw(part_props: &DBPartProps, db: &Data<Mutex<DB>>) -> anyh
     Ok(())
 }
 
-async fn validator(request: ServiceRequest, auth: BasicAuth) -> Result<ServiceRequest, (Error, ServiceRequest)> {
-    let user = auth.user_id();
-    let password = auth.password();
-    if let Some(password) = password {
-        if user == "Admin" && password == "admin" {
-            return Ok(request);
+async fn check_credentials(username: &str, password: &str, db: &Data<Mutex<DB>>) -> anyhow::Result<bool> {
+    let sql = "SELECT * FROM user WHERE username = $username AND password = $password";
+    let vars: BTreeMap<String, Value> = [
+        ("username".into(), username.into()),
+        ("password".into(), password.into()),
+    ].into();
+
+    let db_locked = db.lock().await;
+    let response = db_locked.datastore.execute(sql, &db_locked.session, Some(vars), true).await?;
+    drop(db_locked);
+
+    let response = response.first();
+
+    if let Some(response) = response {
+        if let Ok(result) = &response.result {
+            match result {
+                Value::Array(array) => {
+                    if !array.is_empty() {
+                        return Ok(true);
+                    }
+
+                    return Ok(false);
+                },
+                _ => return Ok(false)
+            }
         }
     }
 
-    let error = ErrorUnauthorized("Unauthorized");
-    return Err((error.into(), request))
+    Ok(false)
 }
 
-async fn create_part(part_props: web::Json<DBPartProps>, db: Data<Mutex<DB>>) -> impl Responder {
-    let result = create_part_raw(&part_props.0, &db).await;
-
-    match result {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+async fn create_part(auth: BasicAuth, part_props: web::Json<DBPartProps>, db: Data<Mutex<DB>>) -> impl Responder {
+    let mut authenticated = false;
+    let user = auth.user_id();
+    let password = auth.password();
+    if let Some(password) = password {
+        let result = check_credentials(user, password, &db).await;
+        if let Ok(correct_credentials) = result {
+            if correct_credentials {
+                authenticated = true;
+            }
+        } else {
+            return HttpResponse::InternalServerError()
+                .finish();
+        }
     }
+
+    if authenticated {
+        let result = create_part_raw(&part_props.0, &db).await;
+
+        return match result {
+            Ok(_) => HttpResponse::Ok().finish(),
+            Err(_) => HttpResponse::InternalServerError().finish(),
+        };
+    }
+
+    HttpResponse::Unauthorized()
+        .insert_header(WwwAuthenticate::<Basic>(Basic::with_realm("Admin rights")))
+        .finish()
 }
 
 fn create_app(
@@ -175,7 +202,6 @@ fn create_app(
                         )
                         .service(
                             web::resource("/create")
-                                .wrap(HttpAuthentication::basic(validator))
                                 .route(web::post().to(create_part)),
                         )
                 )
@@ -270,6 +296,17 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
 
     for temp_part in temp_parts {
         create_part_raw(&temp_part, &db).await?;
+    }
+
+    let sql = "CREATE user SET username = 'Admin', password = 'admin'";
+    let db_locked = db.lock().await;
+    let responses = db_locked.datastore.execute(sql, &db_locked.session, None, false).await?;
+    drop(db_locked);
+
+    for response in responses {
+        if response.output().is_err() {
+            bail!("Failed to create temp user!");
+        }
     }
 
     Ok(())

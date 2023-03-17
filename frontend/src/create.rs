@@ -8,23 +8,20 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use yew::{Component, html, classes, Callback, Properties, Html, ContextHandle};
 use web_sys::{Event, InputEvent, HtmlInputElement, HtmlSelectElement, RequestCredentials};
-use yew_router::prelude::Redirect;
 
-use crate::app::{AppContext, AppRoute};
+use crate::app::AppContext;
 
 pub struct CreatePart {
     context: Rc<AppContext>,
     _listener: ContextHandle<Rc<AppContext>>,
     part: HashMap<String, String>,
     selected_category: PartsCategory,
-    auth_required: bool,
 }
 
 pub enum CreatePartMessage {
     ContextChanged(Rc<AppContext>),
     Update(String, String),
     SetSelectedCategory(PartsCategory),
-    AuthRequired,
 }
 
 impl Component for CreatePart {
@@ -46,7 +43,6 @@ impl Component for CreatePart {
             _listener,
             part: map,
             selected_category: PartsCategory::default(),
-            auth_required: false,
         }
     }
 
@@ -78,7 +74,6 @@ impl Component for CreatePart {
 
                 self.selected_category = category 
             },
-            CreatePartMessage::AuthRequired => self.auth_required = true,
         }
 
         true
@@ -165,9 +160,6 @@ impl Component for CreatePart {
                 <div class={classes!("create-part-button")} onclick={onclick}>
                     <h2>{"Submit"}</h2>
                 </div>
-                if self.auth_required {
-                    <Redirect<AppRoute> to={AppRoute::Auth} />
-                }
             </div>
         }
     }
