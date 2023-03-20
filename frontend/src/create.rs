@@ -9,7 +9,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::{Component, html, classes, Callback, Properties, Html, ContextHandle};
 use web_sys::{Event, InputEvent, HtmlInputElement, HtmlSelectElement, RequestCredentials};
 
-use crate::app::AppContext;
+use crate::app::{AppContext, PCPC_IP};
 
 pub struct CreatePart {
     context: Rc<AppContext>,
@@ -88,7 +88,7 @@ impl Component for CreatePart {
                 let json = get_json(&map, &selected_category).unwrap();
                 spawn_local(async move {
                     let json = json.to_owned();
-                    Request::post("http://127.0.0.1:8088/api/part/create")
+                    Request::post(&format!("{}/api/part/create", PCPC_IP))
                         .credentials(RequestCredentials::Include)
                         .json(&json)
                         .unwrap()

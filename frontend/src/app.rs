@@ -8,6 +8,8 @@ use yew_router::prelude::*;
 
 use crate::{content::{ContentPage, Content}, header::Header, parts::Part, connection::post_from_db, filter::ordering};
 
+pub const PCPC_IP: &'static str = "http://127.0.0.1:8088";
+
 #[derive(Clone, PartialEq)]
 pub struct AppContext {
     pub content_page: ContentPage,
@@ -48,7 +50,7 @@ impl AppContext {
             limit: 1,
         };
         
-        let db_part: Option<DBPart> = post_from_db("http://127.0.0.1:8088/api/part", json).await;
+        let db_part: Option<DBPart> = post_from_db(&format!("{}/api/part", PCPC_IP), json).await;
 
         if let Some(db_part) = db_part {
             let part: Part = db_part.into();
@@ -64,7 +66,7 @@ impl AppContext {
             limit,
         };
         
-        let db_parts: Option<Vec<DBPart>> = post_from_db("http://127.0.0.1:8088/api/part", json).await;
+        let db_parts: Option<Vec<DBPart>> = post_from_db(&format!("{}/api/part", PCPC_IP), json).await;
 
         if let Some(db_parts) = db_parts {
             let parts: Vec<Part> = db_parts.iter().map(|x| Part::from(x.clone())).collect();
@@ -218,8 +220,6 @@ impl Component for App {
 pub enum AppRoute {
     #[at("/")]
     Home,
-    #[at("/part/:id")]
-    Part { id: String },
     #[at("/parts")]
     Parts,
     #[at("/comparison")]

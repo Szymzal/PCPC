@@ -5,7 +5,6 @@ mod parts;
 mod comparison;
 mod home;
 mod create;
-mod partpage;
 mod connection;
 mod filter;
 mod icons;

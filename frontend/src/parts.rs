@@ -4,9 +4,8 @@ use common::{DBPart, PartsCategory, traits::PartProperties};
 use serde::Serialize;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
-use yew_router::prelude::*;
 
-use crate::{app::{AppContext, AppRoute, get_parts_with_callback}, filter::Filter, icons::SearchBar, rating::Rating};
+use crate::{app::{AppContext, get_parts_with_callback}, filter::Filter, icons::SearchBar, rating::Rating};
 
 pub struct Parts {
     parts: Vec<Part>,
@@ -219,9 +218,7 @@ impl Part {
                 </div>
                 <div class={classes!("part_content")}>
                     <div class={classes!("part_header")}>
-                        <Link<AppRoute> to={AppRoute::Part { id: self.id.clone() }}>
-                            <h3 class={classes!("part_name")}>{&self.name}</h3>
-                        </Link<AppRoute>>
+                        <h3 class={classes!("part_name")}>{&self.name}</h3>
                     </div>
                     <div class={classes!("part_info")}>
                         <Rating rating={self.rating} />

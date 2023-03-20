@@ -1,3 +1,4 @@
+use std::env;
 use std::{sync::Arc, collections::BTreeMap};
 
 use actix_cors::Cors;
@@ -74,13 +75,9 @@ async fn part(props: web::Json<GetPartProps>, db: Data<Mutex<DB>>) -> HttpRespon
 }
 
 async fn create_db_connection() -> anyhow::Result<Arc<Mutex<DB>>> {
-    let mut database = option_env!("PCPC_DATABASE_URL");
-    if let None = database {
-        database = Some("memory");
-    }
-
-    let database = database.unwrap();
-    let datastore = Datastore::new(database).await?;
+    let database = env::var("PCPC_DATABASE_URL").unwrap_or("file://database.db".to_string());
+    println!("Database URL: {}", database);
+    let datastore = Datastore::new(&database).await?;
     let session = Session::for_db("my_ns", "my_db");
 
     Ok(Arc::new(Mutex::new(DB {
@@ -181,11 +178,13 @@ fn create_app(
         Error = Error,
     >,
 > {
+    let allowed_origin = env::var("PCPC_ALLOWED_ORIGIN").unwrap_or("http://127.0.0.1:8080".to_string());
+
     App::new()
         .wrap(middleware::Logger::default())
         .wrap(
             Cors::default()
-                .allowed_origin("http://127.0.0.1:8080")
+                .allowed_origin(&allowed_origin)
                 .allowed_methods(vec!["GET", "POST", "OPTIONS"])
                 .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                 .allowed_header(header::CONTENT_TYPE)
@@ -207,9 +206,7 @@ fn create_app(
                                 .route(web::post().to(part)),
                         )
                         .service(
-                            web::resource("/create")
-                                .route(web::post().to(create_part)),
-                        )
+                            web::resource("/create") .route(web::post().to(create_part)),)
                 )
         )
 }
@@ -321,13 +318,22 @@ async fn put_temp_data_to_db(db: Arc<Mutex<DB>>) -> anyhow::Result<()> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
+    let ip = env::var("PCPC_IP").unwrap_or("127.0.0.1:8088".to_string());
+    println!("Creating connection to DB...");
     let db = create_db_connection().await?;
-    put_temp_data_to_db(db.clone()).await?;
+    println!("Created!");
+    #[cfg(debug_assertions)]
+    {
+        println!("Putting TEMP data into DB...");
+        put_temp_data_to_db(db.clone()).await?;
+        println!("Done!");
+    }
 
+    println!("Starting server on: {}", ip);
     HttpServer::new(move || {
         create_app(db.clone())
     })
-    .bind(("127.0.0.1", 8088))?
+    .bind(ip)?
     .run()
     .await?;
 
